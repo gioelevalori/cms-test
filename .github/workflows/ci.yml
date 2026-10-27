@@ -66,7 +66,7 @@ jobs:
         run: |
           node apps/api/dist/main.js > api.log 2>&1 &
           (cd apps/web && npx next start -p 3001 > ../../web.log 2>&1 &)
-          for i in $(seq 1 40); do curl -sf http://localhost:3000/public/businesses/pizzeria-da-mario > /dev/null && break; sleep 1; done
+          for i in $(seq 1 40); do curl -sf http://localhost:3000/health > /dev/null && break; sleep 1; done
           for i in $(seq 1 40); do curl -sf http://localhost:3001/pizzeria-da-mario > /dev/null && break; sleep 1; done
 
       - name: Test end-to-end API

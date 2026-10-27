@@ -5,7 +5,9 @@ import { DEFAULT_LAYOUT } from '@cms/shared';
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcrypt.hash('password123', 10);
+  // In produzione impostare SEED_PASSWORD: le credenziali di esempio non devono essere pubbliche.
+  const password = process.env.SEED_PASSWORD || 'password123';
+  const passwordHash = await bcrypt.hash(password, 10);
   const user = (email: string, name: string, whatsapp: string | null = null) =>
     prisma.user.upsert({ where: { email }, update: {}, create: { email, name, passwordHash, whatsapp } });
 
@@ -56,7 +58,7 @@ async function main() {
     },
   });
 
-  console.log('Seed completato. Utenti: freelance@example.com / cliente@example.com — password: password123');
+  console.log(`Seed completato. Utenti: freelance@example.com / cliente@example.com${process.env.SEED_PASSWORD ? '' : ' — password: password123'}`);
 }
 
 main().finally(() => prisma.$disconnect());
