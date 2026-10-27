@@ -35,7 +35,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   });
   if (res.status === 401 && path !== '/auth/login') {
     setToken(null);
-    window.location.href = '/login';
+    window.location.hash = '#/login';
   }
   const text = await res.text();
   const body = text ? JSON.parse(text) : null;
