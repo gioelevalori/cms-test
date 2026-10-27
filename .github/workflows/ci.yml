@@ -25,37 +25,37 @@ jobs:
       JWT_SECRET: ci-secret
       API_URL: http://localhost:3000
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
       - name: Installa dipendenze
-        run: npm install --no-audit --no-fund
+        run: scripts/ci-run.sh install npm install --no-audit --no-fund
 
       - name: Pacchetto condiviso — build e test
         run: |
-          npm run build -w @cms/shared
-          npm test -w @cms/shared
+          scripts/ci-run.sh shared-build npm run build -w @cms/shared
+          scripts/ci-run.sh shared-test npm test -w @cms/shared
 
       - name: API — prisma, typecheck, build
         working-directory: apps/api
         run: |
-          npx prisma generate
-          npm run typecheck
-          npm run build
+          ../../scripts/ci-run.sh prisma-generate npx prisma generate
+          ../../scripts/ci-run.sh api-typecheck npm run typecheck
+          ../../scripts/ci-run.sh api-build npm run build
 
       - name: Admin — typecheck e build
-        run: npm run build -w @cms/admin
+        run: scripts/ci-run.sh admin-build npm run build -w @cms/admin
 
       - name: Sito pubblico — build
-        run: npm run build -w @cms/web
+        run: scripts/ci-run.sh web-build npm run build -w @cms/web
 
       - name: Database — schema e dati di esempio
         working-directory: apps/api
         run: |
-          npx prisma db push --skip-generate
-          npm run seed
+          ../../scripts/ci-run.sh db-push npx prisma db push --skip-generate
+          ../../scripts/ci-run.sh seed npm run seed
 
       - name: Avvia API e sito
         run: |
@@ -65,7 +65,7 @@ jobs:
           for i in $(seq 1 40); do curl -sf http://localhost:3001/pizzeria-da-mario > /dev/null && break; sleep 1; done
 
       - name: Test end-to-end API
-        run: npm run e2e -w @cms/api
+        run: scripts/ci-run.sh e2e npm run e2e -w @cms/api
 
       - name: Test del sito pubblico
         run: |
@@ -78,5 +78,7 @@ jobs:
       - name: Log in caso di errore
         if: failure()
         run: |
-          echo "--- api.log"; cat api.log || true
-          echo "--- web.log"; cat web.log || true
+          for f in api.log web.log; do
+            [ -f "$f" ] && echo "::error title=$f::$(tail -n 40 $f | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+          done
+          true
