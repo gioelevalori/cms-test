@@ -13,9 +13,11 @@ enum Role {
   client
 }
 
-enum PageStatus {
-  draft
-  published
+enum ChangeStatus {
+  proposed
+  applied
+  rejected
+  undone
 }
 
 model User {
@@ -25,72 +27,125 @@ model User {
   name         String
   createdAt    DateTime     @default(now())
   memberships  Membership[]
-  revisions    PageRevision[]
+  changes      Change[]
 }
 
-model Site {
-  id          String       @id @default(cuid())
-  name        String
-  slug        String       @unique
-  locale      String       @default("it")
-  /// Colori, font e spaziature del sito
-  theme       Json         @default("{}")
-  createdAt   DateTime     @default(now())
-  memberships Membership[]
-  pages       Page[]
-  media       Media[]
+/// L'attività: il centro del modello. Il sito è solo uno dei modi di mostrarla.
+model Business {
+  id           String          @id @default(cuid())
+  slug         String          @unique
+  name         String
+  category     String          @default("")
+  description  String          @default("")
+  phone        String          @default("")
+  email        String          @default("")
+  address      String          @default("")
+  timezone     String          @default("Europe/Rome")
+  /// Colori e font scelti dal costruttore
+  theme        Json            @default("{}")
+  createdAt    DateTime        @default(now())
+  memberships  Membership[]
+  openingHours OpeningHours[]
+  specialHours SpecialHours[]
+  catalog      CatalogItem[]
+  posts        Post[]
+  pages        Page[]
+  changes      Change[]
 }
 
 model Membership {
-  userId String
-  siteId String
-  role   Role
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  site   Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  userId     String
+  businessId String
+  role       Role
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
-  @@id([userId, siteId])
+  @@id([userId, businessId])
 }
 
+model OpeningHours {
+  id         String   @id @default(cuid())
+  businessId String
+  /// 1 = lunedì ... 7 = domenica
+  weekday    Int
+  opens      String
+  closes     String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+model SpecialHours {
+  id         String   @id @default(cuid())
+  businessId String
+  /// YYYY-MM-DD
+  date       String
+  closed     Boolean
+  opens      String?
+  closes     String?
+  note       String?
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, date])
+}
+
+model CatalogItem {
+  id          String   @id
+  businessId  String
+  position    Int
+  section     String
+  name        String
+  description String   @default("")
+  price       Float?
+  available   Boolean  @default(true)
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+model Post {
+  id         String   @id
+  businessId String
+  position   Int
+  kind       String
+  title      String
+  body       String
+  startsAt   String?
+  endsAt     String?
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+/// Struttura delle pagine: blocchi che leggono i dati dell'attività.
 model Page {
-  id          String         @id @default(cuid())
-  siteId      String
-  slug        String
-  title       String
-  status      PageStatus     @default(draft)
-  /// Array di blocchi in lavorazione
-  draft       Json           @default("[]")
-  /// Array di blocchi visibile sul sito pubblico
-  published   Json?
-  seo         Json           @default("{}")
-  publishedAt DateTime?
-  updatedAt   DateTime       @updatedAt
-  site        Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  revisions   PageRevision[]
+  id         String   @id @default(cuid())
+  businessId String
+  slug       String
+  title      String
+  layout     Json
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
-  @@unique([siteId, slug])
+  @@unique([businessId, slug])
 }
 
-model PageRevision {
-  id        String   @id @default(cuid())
-  pageId    String
-  authorId  String
-  blocks    Json
-  createdAt DateTime @default(now())
-  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  author    User     @relation(fields: [authorId], references: [id])
+/// Ogni modifica ai dati passa da qui: proposta, anteprima, conferma, annullamento.
+model Change {
+  id         String       @id @default(cuid())
+  businessId String
+  authorId   String
+  /// chat | form
+  source     String
+  message    String?
+  ops        Json
+  summary    Json
+  before     Json
+  after      Json
+  status     ChangeStatus @default(proposed)
+  createdAt  DateTime     @default(now())
+  appliedAt  DateTime?
+  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  author     User         @relation(fields: [authorId], references: [id])
 
-  @@index([pageId, createdAt])
-}
-
-model Media {
-  id        String   @id @default(cuid())
-  siteId    String
-  filename  String
-  mimeType  String
-  size      Int
-  width     Int?
-  height    Int?
-  alt       String   @default("")
-  createdAt DateTime @default(now())
-  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  @@index([businessId, createdAt])
 }

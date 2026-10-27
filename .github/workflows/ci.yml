@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: cms
+          POSTGRES_PASSWORD: cms
+          POSTGRES_DB: cms
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U cms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://cms:cms@localhost:5432/cms
+      JWT_SECRET: ci-secret
+      API_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Installa dipendenze
+        run: npm install --no-audit --no-fund
+
+      - name: Pacchetto condiviso — build e test
+        run: |
+          npm run build -w @cms/shared
+          npm test -w @cms/shared
+
+      - name: API — prisma, typecheck, build
+        working-directory: apps/api
+        run: |
+          npx prisma generate
+          npm run typecheck
+          npm run build
+
+      - name: Admin — typecheck e build
+        run: npm run build -w @cms/admin
+
+      - name: Sito pubblico — build
+        run: npm run build -w @cms/web
+
+      - name: Database — schema e dati di esempio
+        working-directory: apps/api
+        run: |
+          npx prisma db push --skip-generate
+          npm run seed
+
+      - name: Avvia API e sito
+        run: |
+          node apps/api/dist/main.js > api.log 2>&1 &
+          (cd apps/web && npx next start -p 3001 > ../../web.log 2>&1 &)
+          for i in $(seq 1 40); do curl -sf http://localhost:3000/public/businesses/pizzeria-da-mario > /dev/null && break; sleep 1; done
+          for i in $(seq 1 40); do curl -sf http://localhost:3001/pizzeria-da-mario > /dev/null && break; sleep 1; done
+
+      - name: Test end-to-end API
+        run: npm run e2e -w @cms/api
+
+      - name: Test del sito pubblico
+        run: |
+          html=$(curl -sf http://localhost:3001/pizzeria-da-mario)
+          echo "$html" | grep -q "Pizzeria da Mario"
+          echo "$html" | grep -q 'application/ld+json'
+          echo "$html" | grep -q "Margherita"
+          echo "Sito pubblico OK"
+
+      - name: Log in caso di errore
+        if: failure()
+        run: |
+          echo "--- api.log"; cat api.log || true
+          echo "--- web.log"; cat web.log || true

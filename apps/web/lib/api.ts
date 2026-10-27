@@ -1,18 +1,19 @@
-import type { Block } from '@cms/shared';
+import type { BusinessData, PageBlock } from '@cms/shared';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3000';
 
-export interface PublicPage {
-  title: string;
+export interface PublicBusiness {
   slug: string;
-  blocks: Block[];
-  seo: { description?: string };
-  site: { name: string; theme: { primary?: string; font?: string }; locale: string };
+  theme: { primary?: string };
+  timezone: string;
+  pages: { slug: string; title: string; layout: PageBlock[] }[];
+  data: BusinessData;
+  schemaOrg: Record<string, unknown>;
 }
 
-/** Le pagine vengono rigenerate al massimo ogni 60 secondi (ISR). */
-export async function getPublicPage(siteSlug: string, pageSlug: string): Promise<PublicPage | null> {
-  const res = await fetch(`${API_URL}/public/sites/${siteSlug}/pages/${pageSlug}`, { next: { revalidate: 60 } });
+/** Sempre dati freschi: una modifica confermata in chat si vede subito sul sito. */
+export async function getBusiness(slug: string): Promise<PublicBusiness | null> {
+  const res = await fetch(`${API_URL}/public/businesses/${encodeURIComponent(slug)}`, { cache: 'no-store' });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();

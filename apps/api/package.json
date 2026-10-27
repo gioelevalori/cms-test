@@ -8,8 +8,9 @@
     "start:dev": "nest start --watch",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "seed": "ts-node prisma/seed.ts"
+    "db:push": "prisma db push",
+    "seed": "tsx prisma/seed.ts",
+    "e2e": "node scripts/e2e.mjs"
   },
   "dependencies": {
     "@cms/shared": "0.1.0",
@@ -30,7 +31,8 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "prisma": "^6.0.0",
-    "ts-node": "^10.9.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "tsx": "^4.19.0",
+    "@nestjs/schematics": "^11.0.0"
   }
 }

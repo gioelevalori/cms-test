@@ -1,34 +1,37 @@
 import type { CSSProperties } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getPublicPage } from '../../../lib/api';
+import { getBusiness } from '../../../lib/api';
 import { Blocks } from '../../../components/Blocks';
+
+export const dynamic = 'force-dynamic';
 
 interface Params {
   params: Promise<{ site: string; slug?: string[] }>;
 }
 
-const pageSlugOf = (slug?: string[]) => (slug && slug.length > 0 ? slug.join('/') : 'home');
-
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const { site, slug } = await params;
-  const page = await getPublicPage(site, pageSlugOf(slug));
-  if (!page) return {};
-  return {
-    title: page.slug === 'home' ? page.site.name : `${page.title} | ${page.site.name}`,
-    description: page.seo.description,
-  };
+  const { site } = await params;
+  const business = await getBusiness(site);
+  if (!business) return {};
+  return { title: business.data.name, description: business.data.description || undefined };
 }
 
 export default async function SitePage({ params }: Params) {
   const { site, slug } = await params;
-  const page = await getPublicPage(site, pageSlugOf(slug));
+  const business = await getBusiness(site);
+  if (!business) notFound();
+
+  const pageSlug = slug?.join('/') || 'home';
+  const page = business.pages.find((p) => p.slug === pageSlug);
   if (!page) notFound();
 
-  const style = { '--primary': page.site.theme.primary ?? '#c2410c' } as CSSProperties;
+  const style = { '--primary': business.theme.primary ?? '#c2410c' } as CSSProperties;
   return (
     <main style={style}>
-      <Blocks blocks={page.blocks} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(business.schemaOrg).replace(/</g, '\\u003c') }} />
+      <Blocks layout={page.layout} data={business.data} timezone={business.timezone} />
+      <footer>© {business.data.name}</footer>
     </main>
   );
 }

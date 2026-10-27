@@ -1,69 +1,62 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { createBlock, type Block } from '@cms/shared';
+import { DEFAULT_LAYOUT } from '@cms/shared';
 
 const prisma = new PrismaClient();
 
 async function main() {
   const passwordHash = await bcrypt.hash('password123', 10);
+  const user = (email: string, name: string) =>
+    prisma.user.upsert({ where: { email }, update: {}, create: { email, name, passwordHash } });
 
-  const builder = await prisma.user.upsert({
-    where: { email: 'freelance@example.com' },
-    update: {},
-    create: { email: 'freelance@example.com', name: 'Freelance', passwordHash },
-  });
-  const client = await prisma.user.upsert({
-    where: { email: 'cliente@example.com' },
-    update: {},
-    create: { email: 'cliente@example.com', name: 'Mario (Pizzeria)', passwordHash },
-  });
+  const builder = await user('freelance@example.com', 'Freelance');
+  const client = await user('cliente@example.com', 'Mario (Pizzeria)');
 
-  const site = await prisma.site.upsert({
-    where: { slug: 'pizzeria-da-mario' },
-    update: {},
-    create: {
-      name: 'Pizzeria da Mario',
+  const existing = await prisma.business.findUnique({ where: { slug: 'pizzeria-da-mario' } });
+  if (existing) {
+    console.log('Seed già presente.');
+    return;
+  }
+
+  await prisma.business.create({
+    data: {
       slug: 'pizzeria-da-mario',
-      theme: { primary: '#c2410c', font: 'Poppins' },
+      name: 'Pizzeria da Mario',
+      category: 'restaurant',
+      description: 'Pizzeria di famiglia con forno a legna, nel centro storico dal 1985.',
+      phone: '085 000000',
+      email: 'info@pizzeriadamario.example',
+      address: 'Via Roma 1, Penne (PE)',
+      theme: { primary: '#c2410c' },
       memberships: {
         create: [
           { userId: builder.id, role: 'builder' },
           { userId: client.id, role: 'client' },
         ],
       },
+      openingHours: {
+        create: [2, 3, 4, 5, 6, 7].flatMap((weekday) => [
+          ...(weekday >= 6 ? [{ weekday, opens: '12:00', closes: '14:30' }] : []),
+          { weekday, opens: '19:00', closes: '23:30' },
+        ]),
+      },
+      catalog: {
+        create: [
+          { id: 'item-margherita', position: 0, section: 'Pizze', name: 'Margherita', description: 'Pomodoro, mozzarella, basilico', price: 6 },
+          { id: 'item-marinara', position: 1, section: 'Pizze', name: 'Marinara', description: 'Pomodoro, aglio, origano', price: 5 },
+          { id: 'item-capricciosa', position: 2, section: 'Pizze', name: 'Capricciosa', description: 'Prosciutto, funghi, carciofi, olive', price: 8.5 },
+          { id: 'item-carbonara', position: 3, section: 'Primi', name: 'Carbonara', description: 'Guanciale, uovo, pecorino', price: 11 },
+          { id: 'item-tiramisu', position: 4, section: 'Dolci', name: 'Tiramisù', description: 'Fatto in casa', price: 5 },
+        ],
+      },
+      posts: {
+        create: [{ id: 'post-welcome', position: 0, kind: 'news', title: 'Benvenuti sul nuovo sito', body: 'Da oggi trovate qui orari e menu sempre aggiornati.' }],
+      },
+      pages: { create: [{ slug: 'home', title: 'Home', layout: DEFAULT_LAYOUT as object[] }] },
     },
   });
 
-  const hero = createBlock('hero', 'hero-1');
-  hero.locked = true;
-  hero.editableFields = ['title', 'subtitle'];
-  hero.props = { ...hero.props, title: 'Pizzeria da Mario', subtitle: 'Forno a legna dal 1985', buttonText: 'Prenota', buttonUrl: '#contatti' };
-
-  const text = createBlock('text', 'text-1');
-  text.props = { heading: 'Chi siamo', body: 'Una pizzeria di famiglia nel centro storico.' };
-
-  const contacts = createBlock('contacts', 'contacts-1');
-  contacts.locked = true;
-  contacts.editableFields = ['phone', 'hours'];
-  contacts.props = { address: 'Via Roma 1', phone: '085 000000', email: 'info@example.com', hours: 'Mar-Dom 19:00-23:30' };
-
-  const blocks: Block[] = [hero, text, contacts];
-
-  await prisma.page.upsert({
-    where: { siteId_slug: { siteId: site.id, slug: 'home' } },
-    update: {},
-    create: {
-      siteId: site.id,
-      slug: 'home',
-      title: 'Home',
-      status: 'published',
-      draft: blocks as object[],
-      published: blocks as object[],
-      publishedAt: new Date(),
-    },
-  });
-
-  console.log('Seed completato. Utenti: freelance@example.com / cliente@example.com, password: password123');
+  console.log('Seed completato. Utenti: freelance@example.com / cliente@example.com — password: password123');
 }
 
 main().finally(() => prisma.$disconnect());

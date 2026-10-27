@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
-import { SitesModule } from '../sites/sites.module';
-import { PagesService } from './pages.service';
-import { PagesController, PublicPagesController } from './pages.controller';
+import { PagesController } from './pages.controller';
 
-@Module({ imports: [SitesModule], providers: [PagesService], controllers: [PagesController, PublicPagesController] })
+@Module({ controllers: [PagesController] })
 export class PagesModule {}
