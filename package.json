@@ -1,5 +1,5 @@
 {
-  "name": "cms",
+  "name": "cms-test",
   "private": true,
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {

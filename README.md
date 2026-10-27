@@ -1,4 +1,6 @@
-# CMS (nome da decidere)
+# cms-test
+
+> Nome provvisorio del progetto.
 
 Un CMS alternativo a WordPress in React e Node.js, pensato per due utenti:
 il **freelance** che costruisce il sito e il **cliente** che lo aggiorna cliccando direttamente sulla pagina,
