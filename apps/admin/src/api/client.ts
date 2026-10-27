@@ -63,7 +63,11 @@ export interface Page { slug: string; title: string; layout: PageBlock[] }
 
 const post = <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined });
 
+export interface Me { id: string; email: string; name: string; whatsapp: string | null }
+
 export const api = {
+  me: () => request<Me>('/auth/me'),
+  setWhatsApp: (phone: string) => request<Me>('/auth/me/whatsapp', { method: 'PUT', body: JSON.stringify({ phone }) }),
   login: (email: string, password: string) => post<{ accessToken: string }>('/auth/login', { email, password }),
   businesses: () => request<BusinessSummary[]>('/businesses'),
   business: (id: string) => request<BusinessDetail>(`/businesses/${id}`),

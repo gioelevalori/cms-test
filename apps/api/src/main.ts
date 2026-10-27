@@ -4,7 +4,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody serve a verificare la firma dei webhook WhatsApp
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   app.enableCors({ origin: process.env.ADMIN_ORIGIN ?? 'http://localhost:5173' });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   const port = Number(process.env.PORT ?? 3000);

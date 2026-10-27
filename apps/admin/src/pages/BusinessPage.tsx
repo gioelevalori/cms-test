@@ -7,6 +7,7 @@ import { Chat } from '../components/Chat';
 import { BusinessDataView } from '../components/BusinessData';
 import { History } from '../components/History';
 import { LayoutEditor } from '../components/LayoutEditor';
+import { WhatsAppCard } from '../components/WhatsAppCard';
 
 export function BusinessPage() {
   const { businessId = '' } = useParams();
@@ -63,6 +64,7 @@ export function BusinessPage() {
       <div className="grid">
         <div className="col">
           <Chat businessId={businessId} onApplied={refresh} />
+          <WhatsAppCard />
           <History changes={changes.data ?? []} onUndo={undo} busy={busy} />
           {isBuilder && pages.data?.[0] && <LayoutEditor page={pages.data[0]} onSave={saveLayout} busy={busy} />}
         </div>

@@ -28,6 +28,20 @@ ChangeOp[]  ──►  anteprima "31 ottobre 2026: 12:00–15:00"  ──►  co
 Una demo che gira interamente nel browser (chat, interprete, anteprima del sito) viene pubblicata su GitHub Pages a ogni push su `main`.
 Non usa l'API né il database: i dati restano nel `localStorage` del browser.
 
+## Aggiornare il sito da WhatsApp
+
+Il titolare scrive al numero WhatsApp dell'attività, riceve l'anteprima con i pulsanti **Conferma** / **Annulla**, e il sito si aggiorna.
+Funziona anche rispondere "sì" o "no", scrivere "annulla" per tornare indietro e "aiuto" per gli esempi.
+
+Configurazione (WhatsApp Cloud API di Meta):
+
+1. Crea un'app su [developers.facebook.com](https://developers.facebook.com) e aggiungi il prodotto **WhatsApp**. Meta fornisce un numero di test gratuito.
+2. In `apps/api/.env` imposta `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` e un `WHATSAPP_VERIFY_TOKEN` a tua scelta.
+3. Pubblica l'API su un indirizzo HTTPS (Render, Railway…) e in **WhatsApp → Configurazione → Webhook** inserisci `https://<tuo-dominio>/whatsapp/webhook` con lo stesso verify token, poi iscriviti al campo `messages`.
+4. Nell'admin, scheda **Aggiorna da WhatsApp**, collega il numero del titolare.
+
+Sicurezza: ogni webhook è verificato con la firma `X-Hub-Signature-256`; i messaggi ripetuti da Meta vengono ignorati; i numeri non collegati non possono modificare nulla.
+
 ## Struttura
 
 ```

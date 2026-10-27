@@ -1,0 +1,49 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
+export interface ReplyButton {
+  id: string;
+  title: string;
+}
+
+/** Invio messaggi tramite WhatsApp Cloud API (Graph API di Meta). */
+@Injectable()
+export class WhatsAppClient {
+  private readonly logger = new Logger(WhatsAppClient.name);
+
+  constructor(private readonly config: ConfigService) {}
+
+  sendText(to: string, text: string) {
+    return this.send(to, { type: 'text', text: { body: text.slice(0, 4096) } });
+  }
+
+  /** Messaggio con pulsanti di risposta (massimo 3, titolo massimo 20 caratteri). */
+  sendButtons(to: string, body: string, buttons: ReplyButton[]) {
+    return this.send(to, {
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: body.slice(0, 1024) },
+        action: { buttons: buttons.slice(0, 3).map((b) => ({ type: 'reply', reply: { id: b.id, title: b.title.slice(0, 20) } })) },
+      },
+    });
+  }
+
+  private async send(to: string, message: Record<string, unknown>) {
+    const token = this.config.get<string>('WHATSAPP_TOKEN');
+    const phoneId = this.config.get<string>('WHATSAPP_PHONE_NUMBER_ID');
+    if (!token || !phoneId) {
+      this.logger.warn(`WhatsApp non configurato: messaggio per ${to} non inviato`);
+      return;
+    }
+    const base = this.config.get<string>('WHATSAPP_API_BASE') ?? 'https://graph.facebook.com';
+    const version = this.config.get<string>('WHATSAPP_API_VERSION') ?? 'v26.0';
+    const res = await fetch(`${base}/${version}/${phoneId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, ...message }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) this.logger.error(`Invio WhatsApp fallito (${res.status}): ${await res.text()}`);
+  }
+}

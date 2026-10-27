@@ -24,6 +24,11 @@ jobs:
       DATABASE_URL: postgresql://cms:cms@localhost:5432/cms
       JWT_SECRET: ci-secret
       API_URL: http://localhost:3000
+      WHATSAPP_TOKEN: test-token
+      WHATSAPP_PHONE_NUMBER_ID: test-phone-id
+      WHATSAPP_APP_SECRET: ci-app-secret
+      WHATSAPP_VERIFY_TOKEN: ci-verify
+      WHATSAPP_API_BASE: http://localhost:3999
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

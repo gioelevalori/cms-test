@@ -1,5 +1,7 @@
 // Test end-to-end: richiede API avviata, database con seed. Uso: API_URL=http://localhost:3000 node scripts/e2e.mjs
 import assert from 'node:assert/strict';
+import http from 'node:http';
+import { createHmac } from 'node:crypto';
 
 const API = process.env.API_URL ?? 'http://localhost:3000';
 let passed = 0;
@@ -115,4 +117,123 @@ await step('cronologia delle modifiche', async () => {
   assert.ok(res.body.some((c) => c.status === 'undone'));
 });
 
+// ---------- WhatsApp ----------
+// Finto server Graph API: registra i messaggi che l'API invierebbe a WhatsApp.
+const outbox = [];
+const graph = http.createServer((req, res) => {
+  let raw = '';
+  req.on('data', (c) => (raw += c));
+  req.on('end', () => {
+    outbox.push({ url: req.url, auth: req.headers.authorization, body: JSON.parse(raw) });
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end('{"messages":[{"id":"wamid.out"}]}');
+  });
+});
+await new Promise((r) => graph.listen(3999, r));
+
+const PHONE = '393331234567';
+const SECRET = process.env.WHATSAPP_APP_SECRET ?? 'ci-app-secret';
+let seq = 0;
+
+async function webhook(messages, { secret = SECRET } = {}) {
+  const raw = JSON.stringify({
+    object: 'whatsapp_business_account',
+    entry: [{ id: 'waba', changes: [{ field: 'messages', value: { messaging_product: 'whatsapp', metadata: { phone_number_id: 'test' }, messages } }] }],
+  });
+  return fetch(`${API}/whatsapp/webhook`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-hub-signature-256': 'sha256=' + createHmac('sha256', secret).update(raw).digest('hex') },
+    body: raw,
+  });
+}
+const textMsg = (body, from = PHONE, id = `wamid.in${++seq}`) => ({ id, from, timestamp: '1', type: 'text', text: { body } });
+const buttonMsg = (buttonId) => ({ id: `wamid.in${++seq}`, from: PHONE, timestamp: '1', type: 'interactive', interactive: { type: 'button_reply', button_reply: { id: buttonId, title: 'x' } } });
+
+/** Invia e aspetta la risposta, senza perdere risposte arrivate prima di iniziare ad aspettare. */
+async function send(messages, to = PHONE) {
+  const start = outbox.length;
+  const res = await webhook(messages);
+  assert.equal(res.status, 200);
+  for (let i = 0; i < 60; i++) {
+    const found = outbox.slice(start).find((m) => m.body.to === to);
+    if (found) return found.body;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error(`Nessuna risposta WhatsApp a ${to}`);
+}
+const specialClosingAt = async (closes) => (await publicSite()).data.specialHours.find((s) => s.closes === closes);
+
+await step('WhatsApp: verifica del webhook (GET)', async () => {
+  const ok = await fetch(`${API}/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=${process.env.WHATSAPP_VERIFY_TOKEN ?? 'ci-verify'}&hub.challenge=12345`);
+  assert.equal(ok.status, 200);
+  assert.equal(await ok.text(), '12345');
+  const bad = await fetch(`${API}/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=sbagliato&hub.challenge=12345`);
+  assert.equal(bad.status, 403);
+});
+
+await step('WhatsApp: firma non valida rifiutata', async () => {
+  assert.equal((await webhook([textMsg('Sabato chiusi')], { secret: 'sbagliato' })).status, 401);
+});
+
+let proposal;
+let firstMessage;
+await step('WhatsApp: messaggio → anteprima con pulsanti Conferma/Annulla', async () => {
+  firstMessage = textMsg('Domenica chiudiamo alle 16');
+  proposal = await send([firstMessage]);
+  assert.equal(proposal.type, 'interactive');
+  assert.match(proposal.interactive.body.text, /16:00/);
+  assert.deepEqual(proposal.interactive.action.buttons.map((b) => b.reply.title), ['Conferma', 'Annulla']);
+  assert.equal(await specialClosingAt('16:00'), undefined, 'non ancora applicato');
+});
+
+await step('WhatsApp: pulsante Conferma → sito aggiornato', async () => {
+  const confirmId = proposal.interactive.action.buttons[0].reply.id;
+  const msg = await send([buttonMsg(confirmId)]);
+  assert.match(msg.text.body, /Fatto/);
+  assert.ok(await specialClosingAt('16:00'));
+});
+
+await step('WhatsApp: lo stesso messaggio ripetuto da Meta non viene rielaborato', async () => {
+  const before = outbox.length;
+  assert.equal((await webhook([firstMessage])).status, 200);
+  await new Promise((r) => setTimeout(r, 1200));
+  assert.equal(outbox.length, before);
+});
+
+await step('WhatsApp: "annulla" ripristina l\'ultima modifica', async () => {
+  const msg = await send([textMsg('annulla')]);
+  assert.match(msg.text.body, /Annullato/);
+  assert.equal(await specialClosingAt('16:00'), undefined);
+});
+
+await step('WhatsApp: conferma rispondendo "sì"', async () => {
+  const p = await send([textMsg('La carbonara è finita')]);
+  assert.equal(p.type, 'interactive');
+  const done = await send([textMsg('sì')]);
+  assert.match(done.text.body, /Fatto/);
+  assert.equal((await publicSite()).data.catalog.find((i) => i.name === 'Carbonara').available, false);
+});
+
+await step('WhatsApp: messaggio non capito → istruzioni', async () => {
+  const msg = await send([textMsg('Qual è il senso della vita?')]);
+  assert.match(msg.text.body, /Non ho capito/);
+});
+
+await step('WhatsApp: numero non collegato', async () => {
+  const msg = await send([textMsg('Sabato chiusi', '391111111111')], '391111111111');
+  assert.match(msg.text.body, /non è collegato/);
+});
+
+await step('WhatsApp: le chiamate a Graph usano token e numero configurati', async () => {
+  assert.ok(outbox.every((m) => m.auth === 'Bearer test-token' && m.url.endsWith('/test-phone-id/messages')));
+});
+
+await step('collegamento numero dal profilo, con normalizzazione', async () => {
+  const res = await call('PUT', '/auth/me/whatsapp', { token: client, body: { phone: '+39 333 123 4567' } });
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body.whatsapp, '393331234567');
+  assert.equal((await call('PUT', '/auth/me/whatsapp', { token: builder, body: { phone: '333 1234567' } })).status, 409);
+});
+
+graph.close();
 console.log(`\n${passed} controlli superati`);

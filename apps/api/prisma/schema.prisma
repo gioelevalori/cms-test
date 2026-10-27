@@ -25,6 +25,8 @@ model User {
   email        String       @unique
   passwordHash String
   name         String
+  /// Numero WhatsApp in formato internazionale, solo cifre (es. 393331234567)
+  whatsapp     String?      @unique
   createdAt    DateTime     @default(now())
   memberships  Membership[]
   changes      Change[]
@@ -148,4 +150,10 @@ model Change {
   author     User         @relation(fields: [authorId], references: [id])
 
   @@index([businessId, createdAt])
+}
+
+/// Messaggi WhatsApp già elaborati: Meta ripete i webhook, così non si elaborano due volte.
+model InboundMessage {
+  id        String   @id
+  createdAt DateTime @default(now())
 }

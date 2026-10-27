@@ -6,11 +6,11 @@ const prisma = new PrismaClient();
 
 async function main() {
   const passwordHash = await bcrypt.hash('password123', 10);
-  const user = (email: string, name: string) =>
-    prisma.user.upsert({ where: { email }, update: {}, create: { email, name, passwordHash } });
+  const user = (email: string, name: string, whatsapp: string | null = null) =>
+    prisma.user.upsert({ where: { email }, update: {}, create: { email, name, passwordHash, whatsapp } });
 
   const builder = await user('freelance@example.com', 'Freelance');
-  const client = await user('cliente@example.com', 'Mario (Pizzeria)');
+  const client = await user('cliente@example.com', 'Mario (Pizzeria)', '393331234567');
 
   const existing = await prisma.business.findUnique({ where: { slug: 'pizzeria-da-mario' } });
   if (existing) {
