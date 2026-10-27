@@ -1,0 +1,14 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #1f2937; }
+main { --primary: #c2410c; }
+a { color: var(--primary); }
+.b-hero { padding: 96px 24px; text-align: center; background: #fff7ed; }
+.b-hero h1 { font-size: clamp(32px, 6vw, 56px); margin: 0 0 12px; }
+.b-hero p { font-size: 18px; color: #57534e; }
+.b-button { display: inline-block; margin-top: 16px; background: var(--primary); color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; }
+.b-text, .b-contacts, .b-pricing { max-width: 760px; margin: 0 auto; padding: 48px 24px; }
+.b-image { max-width: 960px; margin: 0 auto; padding: 24px; }
+.b-image img, .b-gallery img { width: 100%; height: auto; }
+.b-gallery { max-width: 960px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.b-pricing ul { list-style: none; padding: 0; }
+.b-pricing li { display: flex; justify-content: space-between; border-bottom: 1px dotted #d6d3d1; padding: 10px 0; }

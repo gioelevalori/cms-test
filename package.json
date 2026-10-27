@@ -1,0 +1,16 @@
+{
+  "name": "cms",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "build:shared": "npm run build -w @cms/shared",
+    "dev:api": "npm run start:dev -w @cms/api",
+    "dev:admin": "npm run dev -w @cms/admin",
+    "dev:web": "npm run dev -w @cms/web",
+    "db:up": "docker compose up -d",
+    "db:migrate": "npm run prisma:migrate -w @cms/api",
+    "db:seed": "npm run seed -w @cms/api",
+    "test": "npm test -w @cms/shared",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  owner
+  builder
+  client
+}
+
+enum PageStatus {
+  draft
+  published
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime     @default(now())
+  memberships  Membership[]
+  revisions    PageRevision[]
+}
+
+model Site {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  locale      String       @default("it")
+  /// Colori, font e spaziature del sito
+  theme       Json         @default("{}")
+  createdAt   DateTime     @default(now())
+  memberships Membership[]
+  pages       Page[]
+  media       Media[]
+}
+
+model Membership {
+  userId String
+  siteId String
+  role   Role
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site   Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@id([userId, siteId])
+}
+
+model Page {
+  id          String         @id @default(cuid())
+  siteId      String
+  slug        String
+  title       String
+  status      PageStatus     @default(draft)
+  /// Array di blocchi in lavorazione
+  draft       Json           @default("[]")
+  /// Array di blocchi visibile sul sito pubblico
+  published   Json?
+  seo         Json           @default("{}")
+  publishedAt DateTime?
+  updatedAt   DateTime       @updatedAt
+  site        Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  revisions   PageRevision[]
+
+  @@unique([siteId, slug])
+}
+
+model PageRevision {
+  id        String   @id @default(cuid())
+  pageId    String
+  authorId  String
+  blocks    Json
+  createdAt DateTime @default(now())
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([pageId, createdAt])
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  siteId    String
+  filename  String
+  mimeType  String
+  size      Int
+  width     Int?
+  height    Int?
+  alt       String   @default("")
+  createdAt DateTime @default(now())
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+}
