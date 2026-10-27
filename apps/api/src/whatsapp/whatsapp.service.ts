@@ -72,10 +72,10 @@ export class WhatsAppService {
       if (UNDO.test(text)) return await this.undoLast(user.id, msg.from, businessId);
 
       const result = await this.changes.proposeFromMessage(user.id, businessId, text);
-      if (result.status === 'not_understood') {
+      if (!('id' in result)) {
         return await this.client.sendText(msg.from, `Non ho capito il messaggio.\n\n${HELP}`);
       }
-      const lines = result.summary.map((s) => `• ${s}`).join('\n');
+      const lines = result.summary.map((s: string) => `• ${s}`).join('\n');
       const unclear = result.unrecognized.length ? `\n\nNon ho capito: “${result.unrecognized.join('”, “')}”` : '';
       await this.client.sendButtons(msg.from, `Ecco cosa cambierà:\n${lines}${unclear}\n\nConfermi?`, [
         { id: `confirm:${result.id}`, title: 'Conferma' },
