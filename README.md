@@ -23,6 +23,11 @@ ChangeOp[]  ──►  anteprima "31 ottobre 2026: 12:00–15:00"  ──►  co
 - L'AI può solo **proporre** operazioni, che vengono sempre validate (`isValidOp`).
 - Il cliente modifica i dati; solo il costruttore modifica la struttura delle pagine.
 
+## Demo online
+
+Una demo che gira interamente nel browser (chat, interprete, anteprima del sito) viene pubblicata su GitHub Pages a ogni push su `main`.
+Non usa l'API né il database: i dati restano nel `localStorage` del browser.
+
 ## Struttura
 
 ```
@@ -30,6 +35,7 @@ packages/shared   Tipi, operazioni pure (applyOps), interprete italiano, schema.
 apps/api          NestJS + Prisma + PostgreSQL              → http://localhost:3000
 apps/admin        React + Vite: chat, dati, cronologia      → http://localhost:5173
 apps/web          Next.js: sito pubblico generato dai dati  → http://localhost:3001
+apps/demo         Demo statica per GitHub Pages (solo browser)
 ```
 
 ## Avvio in locale
