@@ -3,6 +3,7 @@ import { applyOps, describeOp, interpretMessage, toSchemaOrg, todayIn, type Chan
 import { BusinessList } from './BusinessList';
 import { Chat, type Pending } from './Chat';
 import { Site } from './Site';
+import { Sales, contactHref, hasContact } from './Sales';
 import { SAMPLES } from './sample';
 import { loadState, resetState, saveState, type HistoryEntry } from './storage';
 
@@ -58,9 +59,13 @@ export function App() {
         <a className="topnav-brand" href="#demo"><span className="topnav-mark" aria-hidden="true" />cms-test</a>
         <div className="topnav-links">
           <a href="#come-funziona">Come funziona</a>
+          <a href="#sicurezza">Sicurezza</a>
           <a href="#freelance">Per i freelance</a>
+          <a href="#domande">Domande</a>
         </div>
-        <a className="topnav-cta" href="#demo">Prova ora</a>
+        <a className="topnav-cta" href={contactHref} {...(hasContact ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+          {hasContact ? 'Parliamone' : 'Prova ora'}
+        </a>
       </nav>
       <header className="top" id="demo">
         <div className="top-copy">
@@ -89,17 +94,7 @@ export function App() {
         <Site sample={sample} data={biz.data} today={today} />
       </div>
 
-      <section className="how" id="come-funziona" aria-labelledby="how-t">
-        <h2 id="how-t">Come funziona</h2>
-        <ol>
-          <li><strong>Scrivi cosa cambia</strong> su WhatsApp, come a un collaboratore.</li>
-          <li><strong>Guarda l'anteprima</strong> e conferma, oppure annulla.</li>
-          <li><strong>Il sito è aggiornato</strong>, insieme ai dati che legge Google.</li>
-        </ol>
-        <p id="freelance">
-          <strong>Per i freelance:</strong> costruisci il sito una volta, poi il cliente lo tiene aggiornato da solo scrivendo. Ogni cliente è una chat.
-        </p>
-      </section>
+      <Sales />
 
       <footer className="bottom">
         <p>Demo: attività e dati sono inventati, tutto resta nel tuo browser e nessun messaggio viene inviato.</p>

@@ -27,6 +27,8 @@ jobs:
       - run: scripts/ci-run.sh demo-build npm run build -w @cms/demo
         env:
           DEMO_BASE: /${{ github.event.repository.name }}/
+          # Numero WhatsApp per i contatti commerciali: variabile del repository CONTACT_WHATSAPP (facoltativa)
+          VITE_CONTACT_WHATSAPP: ${{ vars.CONTACT_WHATSAPP }}
       - uses: actions/upload-pages-artifact@v4
         with:
           path: apps/demo/dist

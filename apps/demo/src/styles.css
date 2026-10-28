@@ -555,11 +555,59 @@ a { color: inherit; }
 .top .wordmark { display: none; }
 @media (max-width: 640px) { .topnav-links { display: none; } .topnav-brand { margin-right: auto; } }
 
-/* Come funziona */
-.how { margin-top: 28px; padding: 28px 4px 4px; }
-.how h2 { margin: 0 0 14px; font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
-.how ol { display: grid; gap: 12px 32px; margin: 0; padding-left: 20px; max-width: 1100px; }
-@media (min-width: 900px) { .how ol { grid-template-columns: repeat(3, 1fr); } }
-.how li { color: var(--ink-2); }
-.how li strong { color: var(--ink); }
-.how p { margin: 18px 0 0; max-width: 70ch; color: var(--ink-2); }
+/* Sezioni di vendita */
+.sales-how, .sales-split, .sales-faq { padding: clamp(48px, 7vw, 88px) 4px 0; }
+.sales-how h2, .sales-split h2, .sales-faq h2, .sales-cta h2 {
+  margin: 0 0 18px;
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -.03em;
+  text-wrap: balance;
+}
+.steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 28px 40px; }
+@media (min-width: 900px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+.steps li { padding-top: 18px; border-top: 2px solid var(--ink); }
+.step-n { display: block; font-size: 15px; font-weight: 600; color: var(--brand); font-variant-numeric: tabular-nums; }
+.steps h3 { margin: 6px 0 6px; font-size: 21px; font-weight: 600; letter-spacing: -.02em; }
+.steps p { margin: 0; color: var(--ink-2); max-width: 42ch; }
+
+.sales-split { display: grid; gap: 28px 64px; align-items: start; }
+@media (min-width: 900px) { .sales-split { grid-template-columns: 1fr 1fr; } }
+.sales-split p { margin: 0 0 12px; max-width: 56ch; font-size: 17px; color: var(--ink-2); }
+
+.sec-demo { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sec-demo li { display: grid; gap: 4px; padding: 16px 18px; border-radius: 16px; background: var(--panel); box-shadow: 0 1px 2px rgba(18, 22, 27, .06); }
+.sec-from { font-size: 13px; color: var(--muted); }
+.sec-msg { justify-self: start; padding: 8px 12px; border-radius: 14px 14px 14px 4px; background: var(--brand); color: #fff; font-size: 15px; }
+.sec-result { font-size: 14px; font-weight: 600; }
+.sec-ok .sec-result { color: #157a42; }
+.sec-no .sec-msg { background: var(--line); color: var(--muted); text-decoration: line-through; }
+.sec-no .sec-result { color: #b42318; }
+
+.checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.checks li { position: relative; padding: 14px 0 14px 30px; border-bottom: 1px solid var(--line); font-size: 16.5px; }
+.checks li:first-child { border-top: 1px solid var(--line); }
+.checks li::before { content: ''; position: absolute; left: 4px; top: 21px; width: 12px; height: 7px; border-left: 2px solid var(--brand); border-bottom: 2px solid var(--brand); transform: rotate(-45deg); }
+
+.faq { max-width: 860px; border-top: 1px solid var(--line); }
+.faq details { border-bottom: 1px solid var(--line); }
+.faq summary { display: flex; justify-content: space-between; gap: 16px; padding: 18px 2px; font-size: 17px; font-weight: 600; cursor: pointer; list-style: none; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: '+'; flex: none; font-weight: 400; font-size: 22px; line-height: 1; color: var(--brand); transition: transform .2s; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { margin: 0 0 18px; max-width: 70ch; color: var(--ink-2); }
+
+.sales-cta {
+  margin-top: clamp(56px, 8vw, 96px);
+  padding: clamp(36px, 6vw, 64px) clamp(22px, 5vw, 56px);
+  border-radius: 22px;
+  background: var(--ink);
+  color: #fff;
+}
+.sales-cta h2 { color: #fff; }
+.sales-cta p { margin: 0 0 26px; max-width: 56ch; font-size: 17px; color: #c9ced5; }
+.cta-big { display: inline-block; padding: 14px 26px; border-radius: 999px; background: #fff; color: var(--ink); font-weight: 600; font-size: 17px; text-decoration: none; }
+.cta-big:hover { background: var(--brand-soft); }
+html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .faq summary::after { transition: none; } }
