@@ -64,7 +64,7 @@ export function BusinessPage() {
       <div className="grid">
         <div className="col">
           <Chat businessId={businessId} onApplied={refresh} />
-          <WhatsAppCard />
+          <WhatsAppCard businessId={businessId} businessName={b.data.name} />
           <History changes={changes.data ?? []} onUndo={undo} busy={busy} />
           {isBuilder && pages.data?.[0] && <LayoutEditor page={pages.data[0]} onSave={saveLayout} busy={busy} />}
         </div>

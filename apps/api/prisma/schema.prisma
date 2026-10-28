@@ -27,9 +27,25 @@ model User {
   name         String
   /// Numero WhatsApp in formato internazionale, solo cifre (es. 393331234567)
   whatsapp     String?      @unique
+  /// Attività che il numero WhatsApp aggiorna (per chi ne gestisce più di una)
+  whatsappBusinessId String?
   createdAt    DateTime     @default(now())
   memberships  Membership[]
   changes      Change[]
+  whatsappLinks WhatsAppLink[]
+}
+
+/// Codice monouso per collegare un numero WhatsApp: il titolare lo invia dal suo telefono,
+/// così il numero collegato è sicuramente il suo.
+model WhatsAppLink {
+  code       String   @id
+  userId     String
+  businessId String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 /// L'attività: il centro del modello. Il sito è solo uno dei modi di mostrarla.

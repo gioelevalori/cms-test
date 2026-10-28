@@ -1,5 +1,4 @@
-import { Body, ConflictException, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
 import { IsString, MaxLength } from 'class-validator';
 import { BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -21,6 +20,8 @@ export function normalizePhone(input: string): string | null {
   return digits;
 }
 
+const ME = { id: true, email: true, name: true, whatsapp: true, whatsappBusinessId: true } as const;
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService, private readonly prisma: PrismaService) {}
@@ -38,20 +39,19 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtGuard)
   me(@CurrentUser() user: AuthUser) {
-    return this.prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { id: true, email: true, name: true, whatsapp: true } });
+    return this.prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: ME });
   }
 
-  /** Collega il numero WhatsApp da cui l'utente aggiornerà il sito. */
+  /**
+   * Scollega il numero WhatsApp (phone vuoto). Il numero non si collega più digitandolo:
+   * si collega inviando da WhatsApp il codice di POST /whatsapp/link, così è verificato.
+   */
   @Put('me/whatsapp')
   @UseGuards(JwtGuard)
   async setWhatsApp(@CurrentUser() user: AuthUser, @Body() dto: WhatsAppDto) {
-    const whatsapp = normalizePhone(dto.phone);
-    if (whatsapp && (whatsapp.length < 8 || whatsapp.length > 15)) throw new BadRequestException('Numero non valido');
-    try {
-      return await this.prisma.user.update({ where: { id: user.id }, data: { whatsapp }, select: { id: true, email: true, name: true, whatsapp: true } });
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') throw new ConflictException('Numero già collegato a un altro utente');
-      throw err;
+    if (normalizePhone(dto.phone)) {
+      throw new BadRequestException('Per collegare un numero invia da WhatsApp il codice di "Collega WhatsApp": così siamo sicuri che il telefono è tuo');
     }
+    return this.prisma.user.update({ where: { id: user.id }, data: { whatsapp: null, whatsappBusinessId: null }, select: ME });
   }
 }

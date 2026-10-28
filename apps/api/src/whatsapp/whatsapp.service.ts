@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChangesService } from '../changes/changes.service';
 import { WhatsAppClient } from './whatsapp.client';
+import { LINK_MESSAGE } from './whatsapp-link.controller';
 
 /** Un messaggio in arrivo, già estratto dal webhook di Meta. */
 export interface InboundWhatsApp {
@@ -27,6 +28,7 @@ const YES = /^(si|sì|ok|okay|confermo|conferma|va bene|vai)[.! ]*$/i;
 const NO = /^(no|scarta|lascia stare|niente)[.! ]*$/i;
 const UNDO = /^annulla( l['’]?ultima)?( modifica)?[.! ]*$/i;
 const HELP_RE = /^(aiuto|help|\?|ciao|info|menu)[.!? ]*$/i;
+const LINK_RE = new RegExp(`^\\s*${LINK_MESSAGE}\\s+([a-z0-9]{6})\\s*[.!]?\\s*$`, 'i');
 
 /**
  * Il cliente aggiorna il sito da WhatsApp:
@@ -52,14 +54,22 @@ export class WhatsAppService {
       throw err;
     }
 
+    const link = (msg.text ?? '').match(LINK_RE);
+    if (link) return this.linkNumber(msg.from, link[1].toUpperCase());
+
     const user = await this.prisma.user.findUnique({
       where: { whatsapp: msg.from },
       include: { memberships: { include: { business: { select: { id: true, name: true } } } } },
     });
-    const membership = user?.memberships[0];
+    // Solo un numero collegato può cambiare un sito, e cambia l'attività scelta quando l'ha collegato.
+    const membership = user?.memberships.find((m) => m.businessId === user.whatsappBusinessId) ?? user?.memberships[0];
     this.logger.log(`Messaggio da ...${msg.from.slice(-4)}: ${user ? 'utente collegato' : 'numero non collegato'}`);
     if (!user || !membership) {
-      await this.client.sendText(msg.from, 'Questo numero non è collegato a nessuna attività. Collega il tuo numero dal pannello di amministrazione.');
+      await this.client.sendText(
+        msg.from,
+        'Questo numero non è collegato a nessuna attività, quindi non posso cambiare nessun sito. ' +
+          'Per collegarlo apri il pannello della tua attività, tocca "Collega WhatsApp" e invia il codice che ti mostra.',
+      );
       return;
     }
     const businessId = membership.businessId;
@@ -86,6 +96,31 @@ export class WhatsAppService {
       this.logger.error(`Errore elaborando il messaggio ${msg.id}: ${(err as Error).message}`);
       await this.client.sendText(msg.from, `Non sono riuscito a completare l'operazione: ${(err as Error).message}`);
     }
+  }
+
+  /** "COLLEGA ABC123" inviato dal telefono del titolare: collega il numero da cui arriva. */
+  private async linkNumber(from: string, code: string) {
+    const link = await this.prisma.whatsAppLink.findUnique({ where: { code } });
+    if (!link || link.expiresAt < new Date()) {
+      if (link) await this.prisma.whatsAppLink.delete({ where: { code } });
+      await this.client.sendText(from, 'Questo codice non è valido o è scaduto. Generane uno nuovo dal pannello con "Collega WhatsApp".');
+      return;
+    }
+    const owner = await this.prisma.user.findUnique({ where: { whatsapp: from }, select: { id: true } });
+    if (owner && owner.id !== link.userId) {
+      await this.client.sendText(from, 'Questo numero è già collegato a un altro account. Scollegalo da quell\'account e riprova.');
+      return;
+    }
+    const business = await this.prisma.business.findUnique({ where: { id: link.businessId }, select: { name: true } });
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: link.userId }, data: { whatsapp: from, whatsappBusinessId: link.businessId } }),
+      this.prisma.whatsAppLink.deleteMany({ where: { userId: link.userId } }),
+    ]);
+    this.logger.log(`Numero ...${from.slice(-4)} collegato`);
+    await this.client.sendText(
+      from,
+      `Fatto! Da questo numero ora aggiorni il sito di ${business?.name ?? 'la tua attività'}. Solo tu puoi farlo: gli altri numeri vengono ignorati.\n\n${HELP}`,
+    );
   }
 
   private async handleButton(userId: string, to: string, buttonId: string) {

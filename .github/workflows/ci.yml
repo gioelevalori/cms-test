@@ -28,6 +28,7 @@ jobs:
       WHATSAPP_PHONE_NUMBER_ID: test-phone-id
       WHATSAPP_APP_SECRET: ci-app-secret
       WHATSAPP_VERIFY_TOKEN: ci-verify
+      WHATSAPP_DISPLAY_NUMBER: '+1 555 123 4567'
       WHATSAPP_API_BASE: http://localhost:3999
     steps:
       - uses: actions/checkout@v5

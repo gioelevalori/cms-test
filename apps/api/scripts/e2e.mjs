@@ -228,11 +228,45 @@ await step('WhatsApp: le chiamate a Graph usano token e numero configurati', asy
   assert.ok(outbox.every((m) => m.auth === 'Bearer test-token' && m.url.endsWith('/test-phone-id/messages')));
 });
 
-await step('collegamento numero dal profilo, con normalizzazione', async () => {
-  const res = await call('PUT', '/auth/me/whatsapp', { token: client, body: { phone: '+39 333 123 4567' } });
-  assert.equal(res.status, 200, JSON.stringify(res.body));
-  assert.equal(res.body.whatsapp, '393331234567');
-  assert.equal((await call('PUT', '/auth/me/whatsapp', { token: builder, body: { phone: '333 1234567' } })).status, 409);
+await step('collegamento: il numero non si può più digitare a mano', async () => {
+  const res = await call('PUT', '/auth/me/whatsapp', { token: client, body: { phone: '+39 333 765 4321' } });
+  assert.equal(res.status, 400);
+});
+
+await step('scollegamento: il numero non può più cambiare il sito', async () => {
+  const res = await call('PUT', '/auth/me/whatsapp', { token: client, body: { phone: '' } });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.whatsapp, null);
+  const msg = await send([textMsg('Sabato chiusi')]);
+  assert.match(msg.text.body, /non è collegato/);
+});
+
+let linkCode;
+await step('collegamento con codice: solo per le proprie attività', async () => {
+  assert.equal((await call('POST', '/whatsapp/link', { token: client, body: { businessId: 'non-mia' } })).status, 403);
+  const res = await call('POST', '/whatsapp/link', { token: client, body: { businessId } });
+  assert.equal(res.status, 201, JSON.stringify(res.body));
+  assert.match(res.body.code, /^[A-Z0-9]{6}$/);
+  assert.equal(res.body.link, `https://wa.me/15551234567?text=COLLEGA%20${res.body.code}`);
+  linkCode = res.body.code;
+});
+
+await step('collegamento con codice: il numero che lo invia viene collegato', async () => {
+  const msg = await send([textMsg(`collega ${linkCode.toLowerCase()}`)]);
+  assert.match(msg.text.body, /Fatto!.*Pizzeria da Mario/s);
+  const me = await call('GET', '/auth/me', { token: client });
+  assert.equal(me.body.whatsapp, PHONE);
+  assert.equal(me.body.whatsappBusinessId, businessId);
+  const help = await send([textMsg('aiuto')]);
+  assert.match(help.text.body, /Pizzeria da Mario/);
+});
+
+await step('collegamento con codice: un codice si usa una volta sola', async () => {
+  const other = '392222222222';
+  const msg = await send([textMsg(`COLLEGA ${linkCode}`, other)], other);
+  assert.match(msg.text.body, /non è valido o è scaduto/);
+  const blocked = await send([textMsg('La margherita costa 9 euro', other)], other);
+  assert.match(blocked.text.body, /non è collegato/);
 });
 
 graph.close();

@@ -11,7 +11,40 @@ export interface ReplyButton {
 export class WhatsAppClient {
   private readonly logger = new Logger(WhatsAppClient.name);
 
+  private display: string | null | undefined;
+
   constructor(private readonly config: ConfigService) {}
+
+  /**
+   * Il numero dell'assistente a cui i titolari scrivono, solo cifre (es. 15551815223).
+   * Si legge da WHATSAPP_DISPLAY_NUMBER oppure, una volta sola, da Meta: nessuna configurazione in più.
+   */
+  async displayNumber(): Promise<string | null> {
+    const fromEnv = this.config.get<string>('WHATSAPP_DISPLAY_NUMBER');
+    if (fromEnv) return fromEnv.replace(/\D/g, '');
+    if (this.display !== undefined) return this.display;
+    const token = this.config.get<string>('WHATSAPP_TOKEN');
+    const phoneId = this.config.get<string>('WHATSAPP_PHONE_NUMBER_ID');
+    if (!token || !phoneId) return null;
+    try {
+      const res = await fetch(`${this.base()}/${phoneId}?fields=display_phone_number`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
+      });
+      const body = (await res.json()) as { display_phone_number?: string };
+      this.display = res.ok && body.display_phone_number ? body.display_phone_number.replace(/\D/g, '') : null;
+    } catch (err) {
+      this.logger.warn(`Numero dell'assistente non letto da Meta: ${(err as Error).message}`);
+      return null;
+    }
+    return this.display;
+  }
+
+  private base() {
+    const base = this.config.get<string>('WHATSAPP_API_BASE') ?? 'https://graph.facebook.com';
+    const version = this.config.get<string>('WHATSAPP_API_VERSION') ?? 'v26.0';
+    return `${base}/${version}`;
+  }
 
   sendText(to: string, text: string) {
     return this.send(to, { type: 'text', text: { body: text.slice(0, 4096) } });
@@ -36,9 +69,7 @@ export class WhatsAppClient {
       this.logger.warn(`WhatsApp non configurato: messaggio per ${to} non inviato`);
       return;
     }
-    const base = this.config.get<string>('WHATSAPP_API_BASE') ?? 'https://graph.facebook.com';
-    const version = this.config.get<string>('WHATSAPP_API_VERSION') ?? 'v26.0';
-    const res = await fetch(`${base}/${version}/${phoneId}/messages`, {
+    const res = await fetch(`${this.base()}/${phoneId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, ...message }),
