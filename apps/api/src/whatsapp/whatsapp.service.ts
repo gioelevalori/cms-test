@@ -57,6 +57,7 @@ export class WhatsAppService {
       include: { memberships: { include: { business: { select: { id: true, name: true } } } } },
     });
     const membership = user?.memberships[0];
+    this.logger.log(`Messaggio da ...${msg.from.slice(-4)}: ${user ? 'utente collegato' : 'numero non collegato'}`);
     if (!user || !membership) {
       await this.client.sendText(msg.from, 'Questo numero non è collegato a nessuna attività. Collega il tuo numero dal pannello di amministrazione.');
       return;

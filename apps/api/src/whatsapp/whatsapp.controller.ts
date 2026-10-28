@@ -29,17 +29,26 @@ export class WhatsAppController {
   @Get()
   verify(@Query('hub.mode') mode: string, @Query('hub.verify_token') token: string, @Query('hub.challenge') challenge: string) {
     const expected = this.config.get<string>('WHATSAPP_VERIFY_TOKEN');
-    if (mode === 'subscribe' && expected && token === expected) return challenge;
+    if (mode === 'subscribe' && expected && token === expected) {
+      this.logger.log('Verifica webhook riuscita');
+      return challenge;
+    }
+    this.logger.warn(`Verifica webhook rifiutata (mode=${mode}, token ${expected ? 'diverso' : 'non configurato'})`);
     throw new ForbiddenException();
   }
 
   @Post()
   @HttpCode(200)
   receive(@Req() req: RawBodyRequest<Request>) {
-    if (!this.validSignature(req)) throw new UnauthorizedException('Firma non valida');
+    if (!this.validSignature(req)) {
+      this.logger.warn('Webhook rifiutato: firma non valida (controlla WHATSAPP_APP_SECRET)');
+      throw new UnauthorizedException('Firma non valida');
+    }
+    const messages = this.extract(req.body as WebhookBody);
+    this.logger.log(`Webhook ricevuto: ${messages.length} messaggi`);
 
     // Si risponde subito 200 e si elabora dopo: Meta riprova se la risposta tarda.
-    for (const msg of this.extract(req.body as WebhookBody)) {
+    for (const msg of messages) {
       setImmediate(() => this.whatsapp.handle(msg).catch((err) => this.logger.error((err as Error).message)));
     }
     return { received: true };

@@ -45,5 +45,6 @@ export class WhatsAppClient {
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) this.logger.error(`Invio WhatsApp fallito (${res.status}): ${await res.text()}`);
+    else this.logger.log(`Risposta WhatsApp inviata a ...${to.slice(-4)}`);
   }
 }
