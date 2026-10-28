@@ -4,6 +4,8 @@ import QRCode from 'qrcode';
 import { api, type WhatsAppLink } from '../api/client';
 
 const formatNumber = (digits: string) => `+${digits}`;
+/** In locale l'API non riceve i messaggi WhatsApp: Meta li manda solo al server online. */
+const LOCAL_API = /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(import.meta.env.VITE_API_URL ?? 'http://localhost:3000');
 
 /**
  * Collega il numero da cui il titolare aggiornerà il sito scrivendo su WhatsApp.
@@ -69,6 +71,12 @@ export function WhatsAppCard({ businessId, businessName }: { businessId: string;
   return (
     <section className="card wa-card">
       <h2>Aggiorna da WhatsApp</h2>
+      {LOCAL_API && (
+        <p className="error">
+          Stai usando il pannello locale. I messaggi WhatsApp arrivano al server online, quindi i codici generati qui non funzionano:
+          collega il numero dal pannello online.
+        </p>
+      )}
 
       {linkedHere && !link && (
         <div className="wa-linked">
