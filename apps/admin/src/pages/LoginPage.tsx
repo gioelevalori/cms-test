@@ -4,8 +4,8 @@ import { api, setToken } from '../api/client';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('freelance@example.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent) {
@@ -28,7 +28,6 @@ export function LoginPage() {
         <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
         {error && <p className="error">{error}</p>}
         <button type="submit">Entra</button>
-        <p className="hint">Prova anche cliente@example.com per vedere la modalità Cliente.</p>
       </form>
     </main>
   );
