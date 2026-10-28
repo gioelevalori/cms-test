@@ -28,6 +28,12 @@ ChangeOp[]  ──►  anteprima "31 ottobre 2026: 12:00–15:00"  ──►  co
 Una demo che gira interamente nel browser (chat, interprete, anteprima del sito) viene pubblicata su GitHub Pages a ogni push su `main`.
 Non usa l'API né il database: i dati restano nel `localStorage` del browser.
 
+La vetrina include esempi cliccabili, i comandi testuali `sì`, `no`, `annulla` e `aiuto`,
+e un modulo che prepara un riepilogo senza inviarlo o salvarlo. Per abilitare i collegamenti
+commerciali, configurare `VITE_CONTACT_WHATSAPP` oppure `VITE_CONTACT_EMAIL` prima della build
+(vedi `apps/demo/.env.example`). Senza recapiti configurati si può copiare il riepilogo;
+non viene mostrato un contatto inventato. Le variabili `VITE_*` sono pubbliche: nessun token o segreto.
+
 ## Aggiornare il sito da WhatsApp
 
 Il titolare scrive al numero WhatsApp dell'attività, riceve l'anteprima con i pulsanti **Conferma** / **Annulla**, e il sito si aggiorna.
@@ -41,6 +47,43 @@ Configurazione (WhatsApp Cloud API di Meta):
 4. Nell'admin, scheda **Aggiorna da WhatsApp**, collega il numero del titolare.
 
 Sicurezza: ogni webhook è verificato con la firma `X-Hub-Signature-256`; i messaggi ripetuti da Meta vengono ignorati; i numeri non collegati non possono modificare nulla.
+
+### Affidabilità e diagnosi WhatsApp
+
+Il webhook risponde `200` solo dopo aver salvato tutti i messaggi in PostgreSQL. Un worker nell'API
+elabora l'inbox e salva **effetti, cronologia e risposta nella stessa transazione**: un arresto prima
+del commit lascia il messaggio da riprendere. Le risposte stanno in un'outbox separata; errori di rete
+o HTTP di Meta vengono ritentati con attesa crescente, da un secondo fino a cinque minuti.
+I messaggi restano nel database anche dopo errori ripetuti e il worker li riprende al riavvio.
+L'ordine è conservato per mittente e destinatario; un numero in retry non blocca gli altri.
+
+Più istanze API condividono lock PostgreSQL distinti per inbox e outbox. Per semplicità viene
+elaborato un messaggio alla volta per ciascuna coda. Le conferme, i rifiuti e gli annullamenti
+acquisiscono un lock sull'attività e rileggono lo stato prima di scrivere, anche se arrivano dall'admin.
+
+L'invio esterno è **almeno una volta**: se Meta accetta la risposta e il processo si interrompe
+prima di registrarne l'invio, quella risposta può arrivare due volte. La modifica ai dati non viene
+riapplicata. Un hosting sospeso non elabora le code: il recupero avviene quando l'API torna attiva.
+
+Dopo aver aggiornato il codice, rigenerare il client e applicare lo schema **prima di avviare l'API**:
+
+```bash
+npm run prisma:generate -w @cms/api
+npm run db:push
+npm run build -w @cms/api
+```
+
+I vecchi record di deduplicazione senza payload restano validi e non vengono rielaborati.
+Il comando di diagnosi legge `.env` dell'API, conta le code e verifica l'accesso al numero su Meta
+senza inviare messaggi né stampare credenziali o numeri completi:
+
+```bash
+npm run whatsapp:diagnose -w @cms/api
+```
+
+Per collaudare la ricezione reale, controllare nella dashboard Meta la verifica del webhook e
+l'iscrizione al campo `messages`, quindi inviare dal telefono collegato una richiesta, confermarla
+e annullarla. I test con Graph simulato non verificano la configurazione dell'account Meta.
 
 ## Struttura
 
@@ -107,6 +150,7 @@ non capiscono vengono passate a Claude; le operazioni restituite sono validate p
 ```bash
 npm test             # test unitari del pacchetto condiviso
 npm run e2e          # test end-to-end (API avviata + seed)
+npm run test:reliability -w @cms/api # API compilata + PostgreSQL di test; nessun invio reale
 ```
 
 La CI su GitHub Actions esegue build, test unitari, test end-to-end con PostgreSQL e un controllo del sito pubblico.

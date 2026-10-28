@@ -120,12 +120,14 @@ await step('cronologia delle modifiche', async () => {
 // ---------- WhatsApp ----------
 // Finto server Graph API: registra i messaggi che l'API invierebbe a WhatsApp.
 const outbox = [];
+let graphFailures = 0;
 const graph = http.createServer((req, res) => {
   let raw = '';
   req.on('data', (c) => (raw += c));
   req.on('end', () => {
-    outbox.push({ url: req.url, auth: req.headers.authorization, body: JSON.parse(raw) });
-    res.writeHead(200, { 'content-type': 'application/json' });
+    const status = graphFailures > 0 ? (graphFailures--, 503) : 200;
+    outbox.push({ status, url: req.url, auth: req.headers.authorization, body: JSON.parse(raw) });
+    res.writeHead(status, { 'content-type': 'application/json' });
     res.end('{"messages":[{"id":"wamid.out"}]}');
   });
 });
@@ -155,7 +157,7 @@ async function send(messages, to = PHONE) {
   const res = await webhook(messages);
   assert.equal(res.status, 200);
   for (let i = 0; i < 60; i++) {
-    const found = outbox.slice(start).find((m) => m.body.to === to);
+    const found = outbox.slice(start).find((m) => m.status === 200 && m.body.to === to);
     if (found) return found.body;
     await new Promise((r) => setTimeout(r, 100));
   }
@@ -267,6 +269,49 @@ await step('collegamento con codice: un codice si usa una volta sola', async () 
   assert.match(msg.text.body, /non è valido o è scaduto/);
   const blocked = await send([textMsg('La margherita costa 9 euro', other)], other);
   assert.match(blocked.text.body, /non è collegato/);
+});
+
+await step('WhatsApp: errore Graph 503 → retry della risposta, senza riapplicare la conferma', async () => {
+  const p = await send([textMsg('La margherita costa 17 euro')]);
+  const confirmId = p.interactive.action.buttons[0].reply.id;
+  const start = outbox.length;
+  graphFailures = 1;
+  const done = await send([buttonMsg(confirmId)]);
+  assert.match(done.text.body, /Fatto/);
+  assert.deepEqual(outbox.slice(start).map((m) => m.status), [503, 200]);
+  assert.deepEqual(outbox[start].body, outbox[start + 1].body);
+  const history = await call('GET', `/businesses/${businessId}/changes`, { token: client });
+  const change = history.body.find((c) => `confirm:${c.id}` === confirmId);
+  assert.equal(change.status, 'applied');
+  assert.equal(change.source, 'whatsapp');
+  assert.equal((await publicSite()).data.catalog.find((i) => i.name === 'Margherita').price, 17);
+});
+
+let barCode;
+const barSlug = `bar-prova-${Date.now()}`;
+await step('numero già associato a un\'altra attività: chiede se spostarlo, Annulla non cambia nulla', async () => {
+  const bar = await call('POST', '/businesses', { token: builder, body: { name: 'Bar Prova', slug: barSlug } });
+  assert.equal(bar.status, 201, JSON.stringify(bar.body));
+  barCode = (await call('POST', '/whatsapp/link', { token: builder, body: { businessId: bar.body.id } })).body.code;
+  const ask = await send([textMsg(`COLLEGA ${barCode}`)]);
+  assert.equal(ask.type, 'interactive');
+  assert.match(ask.interactive.body.text, /già associato a Pizzeria da Mario.*dissociarlo da Pizzeria da Mario e associarlo a Bar Prova/s);
+  assert.deepEqual(ask.interactive.action.buttons.map((b) => b.reply.title), ['Conferma', 'Annulla']);
+  const no = await send([buttonMsg(ask.interactive.action.buttons[1].reply.id)]);
+  assert.match(no.text.body, /resta associato a Pizzeria da Mario/);
+  assert.equal((await call('GET', '/auth/me', { token: client })).body.whatsapp, PHONE);
+});
+
+await step('numero già associato: Conferma lo sposta, e le modifiche vanno solo sul nuovo sito', async () => {
+  const done = await send([buttonMsg(`link-yes:${barCode}`)]);
+  assert.match(done.text.body, /Fatto!.*Bar Prova/s);
+  assert.equal((await call('GET', '/auth/me', { token: client })).body.whatsapp, null);
+  assert.equal((await call('GET', '/auth/me', { token: builder })).body.whatsapp, PHONE);
+  const p = await send([textMsg('Il lunedì dalle 7 alle 20')]);
+  await send([buttonMsg(p.interactive.action.buttons[0].reply.id)]);
+  const bar = (await call('GET', `/public/businesses/${barSlug}`)).body.data;
+  assert.deepEqual(bar.openingHours.filter((h) => h.weekday === 1), [{ weekday: 1, opens: '07:00', closes: '20:00' }]);
+  assert.equal((await publicSite()).data.openingHours.some((h) => h.weekday === 1), false, 'la pizzeria non cambia');
 });
 
 graph.close();

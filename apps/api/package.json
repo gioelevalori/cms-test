@@ -10,7 +10,9 @@
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",
     "seed": "tsx prisma/seed.ts",
-    "e2e": "node scripts/e2e.mjs"
+    "e2e": "node scripts/e2e.mjs",
+    "test:reliability": "node scripts/reliability.mjs",
+    "whatsapp:diagnose": "node scripts/whatsapp-diagnose.mjs"
   },
   "dependencies": {
     "@cms/shared": "0.1.0",

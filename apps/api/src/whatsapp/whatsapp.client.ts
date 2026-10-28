@@ -6,6 +6,15 @@ export interface ReplyButton {
   title: string;
 }
 
+export const textPayload = (text: string) => ({ type: 'text', text: { body: text.slice(0, 4096) } });
+export const buttonsPayload = (body: string, buttons: ReplyButton[]) => ({
+  type: 'interactive',
+  interactive: {
+    type: 'button', body: { text: body.slice(0, 1024) },
+    action: { buttons: buttons.slice(0, 3).map((b) => ({ type: 'reply', reply: { id: b.id, title: b.title.slice(0, 20) } })) },
+  },
+});
+
 /** Invio messaggi tramite WhatsApp Cloud API (Graph API di Meta). */
 @Injectable()
 export class WhatsAppClient {
@@ -47,27 +56,19 @@ export class WhatsAppClient {
   }
 
   sendText(to: string, text: string) {
-    return this.send(to, { type: 'text', text: { body: text.slice(0, 4096) } });
+    return this.send(to, textPayload(text));
   }
 
   /** Messaggio con pulsanti di risposta (massimo 3, titolo massimo 20 caratteri). */
   sendButtons(to: string, body: string, buttons: ReplyButton[]) {
-    return this.send(to, {
-      type: 'interactive',
-      interactive: {
-        type: 'button',
-        body: { text: body.slice(0, 1024) },
-        action: { buttons: buttons.slice(0, 3).map((b) => ({ type: 'reply', reply: { id: b.id, title: b.title.slice(0, 20) } })) },
-      },
-    });
+    return this.send(to, buttonsPayload(body, buttons));
   }
 
-  private async send(to: string, message: Record<string, unknown>) {
+  async send(to: string, message: Record<string, unknown>) {
     const token = this.config.get<string>('WHATSAPP_TOKEN');
     const phoneId = this.config.get<string>('WHATSAPP_PHONE_NUMBER_ID');
     if (!token || !phoneId) {
-      this.logger.warn(`WhatsApp non configurato: messaggio per ${to} non inviato`);
-      return;
+      throw new Error('WhatsApp non configurato: token o numero mancanti');
     }
     const res = await fetch(`${this.base()}/${phoneId}/messages`, {
       method: 'POST',
@@ -75,7 +76,10 @@ export class WhatsAppClient {
       body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, ...message }),
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) this.logger.error(`Invio WhatsApp fallito (${res.status}): ${await res.text()}`);
-    else this.logger.log(`Risposta WhatsApp inviata a ...${to.slice(-4)}`);
+    if (!res.ok) {
+      // Non salvare il corpo Graph: può contenere dati personali o credenziali.
+      throw new Error(`Invio WhatsApp fallito (HTTP ${res.status})`);
+    }
+    this.logger.log(`Risposta WhatsApp inviata a ...${to.slice(-4)}`);
   }
 }

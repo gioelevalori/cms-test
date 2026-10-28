@@ -152,7 +152,7 @@ model Change {
   id         String       @id @default(cuid())
   businessId String
   authorId   String
-  /// chat | form
+  /// chat | form | whatsapp
   source     String
   message    String?
   ops        Json
@@ -168,8 +168,34 @@ model Change {
   @@index([businessId, createdAt])
 }
 
-/// Messaggi WhatsApp già elaborati: Meta ripete i webhook, così non si elaborano due volte.
+/// Inbox persistente. I vecchi record senza payload restano deduplicati.
 model InboundMessage {
   id        String   @id
   createdAt DateTime @default(now())
+  sequence  BigInt   @default(autoincrement())
+  sender    String?
+  payload   Json?
+  processedAt DateTime?
+  attempts  Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError String?
+
+  @@index([processedAt, nextAttemptAt])
+  @@index([sender, sequence])
+}
+
+/// Risposte salvate insieme agli effetti del messaggio; inviate con retry.
+model WhatsAppOutbound {
+  id        String   @id @default(cuid())
+  sequence  BigInt   @unique @default(autoincrement())
+  recipient String
+  payload   Json
+  createdAt DateTime @default(now())
+  sentAt    DateTime?
+  attempts  Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError String?
+
+  @@index([sentAt, nextAttemptAt])
+  @@index([recipient, sequence])
 }

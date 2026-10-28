@@ -73,6 +73,9 @@ jobs:
       - name: Test end-to-end API
         run: scripts/ci-run.sh e2e npm run e2e -w @cms/api
 
+      - name: Test affidabilità WhatsApp e concorrenza
+        run: scripts/ci-run.sh reliability npm run test:reliability -w @cms/api
+
       - name: Test del sito pubblico
         run: |
           html=$(curl -sf http://localhost:3001/pizzeria-da-mario)

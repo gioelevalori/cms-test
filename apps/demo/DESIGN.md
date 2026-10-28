@@ -260,3 +260,23 @@ La parte cambiata prende il giallo con un alone di 6px e sfuma in 2,4 s (cubic-b
 - **Don't** separare le parti con card o ombre: linee da 1px.
 - **Don't** rendere chiamabili i numeri di telefono d'esempio.
 - **Don't** aggiungere animazioni d'ingresso: l'evidenziazione è l'unico movimento.
+
+## Percorso della vetrina e richiesta informazioni
+
+La demo resta la prima prova del prodotto. Il titolo e la spiegazione occupano due colonne sopra
+i 1100px; l'altezza della finestra si adatta al viewport per mantenere visibile il campo messaggio
+su desktop. Una riga di tre passaggi descrive scrittura, conferma e risultato. I collegamenti
+“Vai alla chat” e “Guarda il sito” aiutano sugli schermi stretti e mantengono un focus accessibile.
+
+La libreria di sei esempi usa righe aperte divise da linee, su due colonne o una sola da telefono.
+Ogni esempio seleziona l'attività corretta e prepara una proposta, senza applicarla. I comandi
+testuali “sì”, “no”, “annulla” e “aiuto” restituiscono un riscontro nella conversazione.
+
+Il modulo finale prepara un riepilogo, senza salvarlo o inviarlo automaticamente. I campi usano
+gli stessi token, controlli da almeno 46px e testi da 16px; il risultato resta selezionabile.
+“Copia il riepilogo” funziona anche senza recapito commerciale. Con un numero o una email
+configurati, compare un collegamento esplicito per aprire il canale con il testo preparato.
+Nessun recapito, listino del servizio o prova sociale viene inventato.
+
+Verifica del 28 ottobre 2026: viewport 1365×900, 768×1024 e 390×844, senza overflow della pagina.
+Controllati esempio/prezzo, conferma testuale, annullamento, rifiuto, aiuto e copia del riepilogo.

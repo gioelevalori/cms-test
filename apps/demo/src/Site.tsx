@@ -90,7 +90,7 @@ export function Site({ sample, data, today }: { sample: SampleBusiness; data: Bu
   }
 
   return (
-    <section className="preview" aria-label={`Anteprima del sito di ${data.name}`}>
+    <section className="preview" tabIndex={-1} aria-label={`Anteprima del sito di ${data.name}`}>
       <div className="preview-bar">
         <span className="preview-url">{sample.domain}</span>
         <span className="preview-note">Anteprima del sito</span>

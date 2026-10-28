@@ -1,11 +1,14 @@
-/** Numero WhatsApp per i contatti commerciali (solo cifre), impostato alla build con VITE_CONTACT_WHATSAPP. */
-const CONTACT = (import.meta.env.VITE_CONTACT_WHATSAPP ?? '').replace(/\D/g, '');
+import { SAMPLES } from './sample';
+import { RequestBrief } from './RequestBrief';
 
-/** Link al contatto commerciale; senza numero configurato si torna alla demo. */
-export const contactHref = CONTACT
-  ? `https://wa.me/${CONTACT}?text=${encodeURIComponent('Ciao! Ho visto la demo di cms-test e vorrei saperne di più.')}`
-  : '#demo';
-export const hasContact = Boolean(CONTACT);
+const EXAMPLES = [
+  { title: 'Prezzi e listini', business: 'salone-giulia', index: 0 },
+  { title: 'Orari speciali', business: 'pizzeria-mario', index: 0 },
+  { title: 'Prodotti esauriti', business: 'ferramenta-rossi', index: 1 },
+  { title: 'Ferie e chiusure', business: 'studio-bianchi', index: 0 },
+  { title: 'Nuovi servizi', business: 'salone-giulia', index: 2 },
+  { title: 'Eventi e novità', business: 'palestra-move', index: 3 },
+];
 
 const FAQ = [
   {
@@ -14,7 +17,7 @@ const FAQ = [
   },
   {
     q: 'Chi può cambiare il mio sito?',
-    a: 'Solo i numeri che hai collegato tu, inviando il codice dal tuo telefono. Un messaggio da qualsiasi altro numero viene ignorato e non cambia nulla.',
+    a: 'I numeri collegati agli account autorizzati dell’attività. Il collegamento richiede un codice inviato dal telefono. I numeri non collegati non possono modificare i dati.',
   },
   {
     q: 'E se sbaglio a scrivere?',
@@ -25,17 +28,33 @@ const FAQ = [
     a: 'Orari della settimana, chiusure e ferie, orari speciali, prezzi, voci finite o tornate disponibili, nuove voci, eventi e novità. Se un messaggio non è chiaro, te lo dice invece di indovinare.',
   },
   {
-    q: 'Google vede le modifiche?',
-    a: 'Sì: insieme al sito si aggiornano i dati strutturati (schema.org) che Google usa per orari e listini.',
+    q: 'Si aggiorna anche Google Maps?',
+    a: 'L’integrazione con la scheda Google Maps non è ancora disponibile. Il sito aggiorna i propri dati strutturati per i motori di ricerca; i tempi di lettura e pubblicazione dipendono da Google.',
   },
   {
     q: 'Ho già un sito: devo rifarlo?',
-    a: 'Dipende da com\'è fatto. Parliamone: spesso si collegano i dati che cambiano spesso e il resto resta com\'è.',
+    a: 'Va verificato come è stato costruito e come collegarlo ai dati dell’attività. La demo mostra il risultato possibile; la compatibilità con il tuo sito richiede una valutazione.',
+  },
+  {
+    q: 'Questa demo invia messaggi WhatsApp veri?',
+    a: 'No. La conversazione è simulata nel browser e usa attività inventate. Puoi provare anteprima, conferma e annullamento senza registrarti. Il collegamento al tuo numero fa parte della configurazione del servizio completo.',
+  },
+  {
+    q: 'Posso inviare foto o messaggi vocali?',
+    a: 'Per ora gli aggiornamenti supportati sono testuali. Foto, messaggi vocali e promemoria sono possibili sviluppi futuri, senza una data di disponibilità annunciata.',
+  },
+  {
+    q: 'Quanto costa?',
+    a: 'Non è ancora pubblicato un listino del servizio. I prezzi che vedi nei cinque siti sono dati inventati delle attività di esempio.',
+  },
+  {
+    q: 'Dove restano le prove che faccio qui?',
+    a: 'Le modifiche alle attività di esempio restano nel browser di questo dispositivo. “Ricomincia da capo” ripristina tutti gli esempi. Il modulo per preparare una richiesta non salva né invia dati automaticamente.',
   },
 ];
 
 /** Le sezioni sotto la demo: come funziona, sicurezza, freelance, domande, contatto. */
-export function Sales() {
+export function Sales({ onTryExample }: { onTryExample: (businessId: string, message: string) => void }) {
   return (
     <>
       <section className="sales-how" id="come-funziona" aria-labelledby="how-t">
@@ -54,19 +73,39 @@ export function Sales() {
           <li>
             <span className="step-n" aria-hidden="true">3</span>
             <h3>Il sito è aggiornato</h3>
-            <p>Orari, prezzi e novità cambiano subito, insieme ai dati che legge Google.</p>
+            <p>Dopo la conferma il sito mostra i nuovi dati. Scrivi “annulla” se vuoi ripristinare la modifica precedente.</p>
           </li>
         </ol>
       </section>
 
+      <section className="sales-examples" id="esempi" aria-labelledby="examples-title">
+        <div className="examples-intro">
+          <h2 id="examples-title">Cosa scriveresti oggi?</h2>
+          <p>Tocca un esempio: si apre la chat dell’attività giusta con l’anteprima. Sarai tu a confermare.</p>
+        </div>
+        <ul className="example-library">
+          {EXAMPLES.map((example) => {
+            const business = SAMPLES.find((s) => s.id === example.business)!;
+            const message = business.examples[example.index];
+            return <li key={example.title}>
+              <button onClick={() => onTryExample(business.id, message)}>
+                <span className="example-title">{example.title}<span className="example-sector">{business.sector}</span></span>
+                <span className="example-message">“{message}”</span>
+                <span className="example-action">Prova questo messaggio <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+              </button>
+            </li>;
+          })}
+        </ul>
+      </section>
+
       <section className="sales-split" id="sicurezza" aria-labelledby="sec-t">
         <div>
-          <h2 id="sec-t">Solo il tuo numero può cambiare il sito</h2>
+          <h2 id="sec-t">Il tuo sito cambia solo con il tuo consenso</h2>
           <p>
-            Colleghi il tuo WhatsApp in dieci secondi: dal pannello inquadri un codice QR e invii il messaggio già pronto.
-            Il numero da cui arriva diventa l'unico che può aggiornare il tuo sito.
+            Colleghi il tuo WhatsApp dal pannello: inquadri un codice QR e invii il messaggio già pronto.
+            Il numero viene associato al tuo account e all’attività scelta.
           </p>
-          <p>Nessun numero da digitare, nessuna configurazione. Se cambi telefono, scolleghi e ricolleghi.</p>
+          <p>Ogni richiesta passa da un’anteprima e dalla conferma. Puoi scollegare il numero dal pannello e consultare la cronologia delle modifiche.</p>
         </div>
         <ul className="sec-demo" aria-label="Esempio: messaggi da due numeri diversi">
           <li className="sec-ok">
@@ -77,9 +116,21 @@ export function Sales() {
           <li className="sec-no">
             <span className="sec-from">+39 347 ··· 1122 · un altro numero</span>
             <span className="sec-msg">La margherita costa 1 euro</span>
-            <span className="sec-result">Ignorato: il sito non cambia</span>
+            <span className="sec-result">Numero non autorizzato: il sito non cambia</span>
           </li>
         </ul>
+      </section>
+
+      <section className="sales-split" id="iniziare" aria-labelledby="start-title">
+        <div>
+          <h2 id="start-title">Dalla prova al tuo sito</h2>
+          <p>La demo ti fa provare il gesto quotidiano. Per usarlo nella tua attività servono i tuoi dati, un sito collegato e la configurazione di WhatsApp.</p>
+        </div>
+        <ol className="setup-list">
+          <li><h3>Raccogliamo i dati</h3><p>Orari, listino o menu, contatti e informazioni da tenere aggiornate.</p></li>
+          <li><h3>Prepariamo il sito</h3><p>Contenuti e aspetto adatti all’attività, con gli aggiornamenti collegati ai dati.</p></li>
+          <li><h3>Colleghiamo WhatsApp</h3><p>Configurazione del servizio, verifica del numero e prova completa: messaggio, conferma e annullamento.</p></li>
+        </ol>
       </section>
 
       <section className="sales-split sales-freelance" id="freelance" aria-labelledby="fl-t">
@@ -107,13 +158,7 @@ export function Sales() {
         </div>
       </section>
 
-      <section className="sales-cta" aria-labelledby="cta-t">
-        <h2 id="cta-t">Vuoi provarlo sulla tua attività?</h2>
-        <p>Raccontaci che attività hai: ti mostriamo come sarebbe il tuo sito. Prezzi su richiesta.</p>
-        <a className="cta-big" href={contactHref} {...(hasContact ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
-          {hasContact ? 'Parliamone su WhatsApp' : 'Prova la demo'}
-        </a>
-      </section>
+      <RequestBrief />
     </>
   );
 }

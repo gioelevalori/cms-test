@@ -15,6 +15,7 @@ interface Props {
   examples: string[];
   history: HistoryEntry[];
   pending: Pending | null;
+  notice: string;
   onSend: (text: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
@@ -40,7 +41,7 @@ function Ticks() {
 }
 
 /** Conversazione WhatsApp simulata: stessa sequenza del bot reale (anteprima → Conferma / Annulla). */
-export function Chat({ businessName, accent, examples, history, pending, onSend, onConfirm, onCancel, onUndo }: Props) {
+export function Chat({ businessName, accent, examples, history, pending, notice, onSend, onConfirm, onCancel, onUndo }: Props) {
   const [text, setText] = useState('');
   const logRef = useRef<HTMLOListElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -52,8 +53,9 @@ export function Chat({ businessName, accent, examples, history, pending, onSend,
     const log = logRef.current;
     const first = seen.current.count === history.length && seen.current.pending === pending;
     seen.current = { count: history.length, pending };
-    if (log && !(first && history.length === 0)) log.scrollTo({ top: log.scrollHeight, behavior: first ? 'auto' : 'smooth' });
-  }, [history.length, pending]);
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (log && !(first && history.length === 0 && !notice)) log.scrollTo({ top: log.scrollHeight, behavior: first || reduce ? 'auto' : 'smooth' });
+  }, [history.length, pending, notice]);
 
   useEffect(() => {
     if (pending?.ops.length) confirmRef.current?.focus({ preventScroll: true });
@@ -113,6 +115,8 @@ export function Chat({ businessName, accent, examples, history, pending, onSend,
           </li>
         ))}
 
+        {notice && <li className="bubble in" role="status">{notice}</li>}
+
         {pending && (
           <li className="pair">
             <div className="bubble out">{pending.message}<span className="meta">adesso <Ticks /></span></div>
@@ -154,7 +158,8 @@ export function Chat({ businessName, accent, examples, history, pending, onSend,
           value={text}
           placeholder="Scrivi cosa cambia…"
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
+          maxLength={2000}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
         />
         <button type="submit" className="wa-send" disabled={!text.trim()} aria-label="Invia">
           <SendIcon />

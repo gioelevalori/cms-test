@@ -1,14 +1,15 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { canEditStructure, type Role } from '@cms/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 
 @Injectable()
 export class MembershipService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Ruolo dell'utente; 404 se non è membro, così non si rivela che l'attività esiste. */
-  async roleOf(userId: string, businessId: string): Promise<Role> {
-    const m = await this.prisma.membership.findUnique({ where: { userId_businessId: { userId, businessId } } });
+  async roleOf(userId: string, businessId: string, db: Prisma.TransactionClient = this.prisma): Promise<Role> {
+    const m = await db.membership.findUnique({ where: { userId_businessId: { userId, businessId } } });
     if (!m) throw new NotFoundException('Attività non trovata');
     return m.role;
   }

@@ -6,6 +6,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   // rawBody serve a verificare la firma dei webhook WhatsApp
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  app.enableShutdownHooks();
   // Più origini separate da virgola, es. "https://admin.example.com,http://localhost:5173"
   app.enableCors({ origin: (process.env.ADMIN_ORIGIN ?? 'http://localhost:5173').split(',').map((o) => o.trim()) });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

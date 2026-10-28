@@ -3,7 +3,8 @@ import type { RawBodyRequest } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { WhatsAppService, type InboundWhatsApp } from './whatsapp.service';
+import type { InboundWhatsApp } from './whatsapp.service';
+import { WhatsAppQueueService } from './whatsapp-queue.service';
 
 interface WebhookBody {
   object?: string;
@@ -23,7 +24,7 @@ interface WebhookMessage {
 export class WhatsAppController {
   private readonly logger = new Logger(WhatsAppController.name);
 
-  constructor(private readonly config: ConfigService, private readonly whatsapp: WhatsAppService) {}
+  constructor(private readonly config: ConfigService, private readonly queue: WhatsAppQueueService) {}
 
   /** Meta chiama questo endpoint quando si salva l'URL del webhook nel pannello sviluppatori. */
   @Get()
@@ -39,7 +40,7 @@ export class WhatsAppController {
 
   @Post()
   @HttpCode(200)
-  receive(@Req() req: RawBodyRequest<Request>) {
+  async receive(@Req() req: RawBodyRequest<Request>) {
     if (!this.validSignature(req)) {
       this.logger.warn('Webhook rifiutato: firma non valida (controlla WHATSAPP_APP_SECRET)');
       throw new UnauthorizedException('Firma non valida');
@@ -47,10 +48,8 @@ export class WhatsAppController {
     const messages = this.extract(req.body as WebhookBody);
     this.logger.log(`Webhook ricevuto: ${messages.length} messaggi`);
 
-    // Si risponde subito 200 e si elabora dopo: Meta riprova se la risposta tarda.
-    for (const msg of messages) {
-      setImmediate(() => this.whatsapp.handle(msg).catch((err) => this.logger.error((err as Error).message)));
-    }
+    // Il 200 arriva solo dopo il salvataggio durevole: se il DB fallisce, Meta può riprovare.
+    await this.queue.enqueue(messages);
     return { received: true };
   }
 
@@ -72,6 +71,7 @@ export class WhatsAppController {
     const out: InboundWhatsApp[] = [];
     for (const entry of body.entry ?? []) {
       for (const change of entry.changes ?? []) {
+        if (change.field !== 'messages') continue;
         for (const m of change.value?.messages ?? []) {
           if (!m?.id || !m?.from) continue;
           out.push({
