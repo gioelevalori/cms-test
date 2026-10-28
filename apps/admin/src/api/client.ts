@@ -71,6 +71,7 @@ export const api = {
   whatsAppLink: (businessId: string) => post<WhatsAppLink>('/whatsapp/link', { businessId }),
   unlinkWhatsApp: () => request<Me>('/auth/me/whatsapp', { method: 'PUT', body: JSON.stringify({ phone: '' }) }),
   login: (email: string, password: string) => post<{ accessToken: string }>('/auth/login', { email, password }),
+  register: (name: string, email: string, password: string) => post<{ accessToken: string }>('/auth/register', { name, email, password }),
   businesses: () => request<BusinessSummary[]>('/businesses'),
   createBusiness: (name: string, slug: string) => post<{ id: string; slug: string; name: string }>('/businesses', { name, slug }),
   business: (id: string) => request<BusinessDetail>(`/businesses/${id}`),
