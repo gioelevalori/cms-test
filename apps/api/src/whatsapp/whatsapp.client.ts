@@ -55,6 +55,20 @@ export class WhatsAppClient {
     return `${base}/${version}`;
   }
 
+  /** Scarica un file ricevuto (foto): prima l'indirizzo da Graph, poi il contenuto con lo stesso token. */
+  async downloadMedia(mediaId: string): Promise<{ data: Buffer; mimetype: string }> {
+    const token = this.config.get<string>('WHATSAPP_TOKEN');
+    if (!token) throw new Error('WhatsApp non configurato: token mancante');
+    const meta = await fetch(`${this.base()}/${encodeURIComponent(mediaId)}`, {
+      headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15_000),
+    });
+    const info = (await meta.json().catch(() => ({}))) as { url?: string; mime_type?: string };
+    if (!meta.ok || !info.url) throw new Error(`Foto WhatsApp non trovata (HTTP ${meta.status})`);
+    const file = await fetch(info.url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30_000) });
+    if (!file.ok) throw new Error(`Download della foto WhatsApp fallito (HTTP ${file.status})`);
+    return { data: Buffer.from(await file.arrayBuffer()), mimetype: (info.mime_type ?? file.headers.get('content-type') ?? '').split(';')[0] };
+  }
+
   sendText(to: string, text: string) {
     return this.send(to, textPayload(text));
   }

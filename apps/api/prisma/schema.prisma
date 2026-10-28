@@ -58,6 +58,8 @@ model Business {
   phone        String          @default("")
   email        String          @default("")
   address      String          @default("")
+  /// Foto di copertina (URL Cloudinary)
+  coverUrl     String?
   timezone     String          @default("Europe/Rome")
   /// Colori e font scelti dal costruttore
   theme        Json            @default("{}")
@@ -66,6 +68,7 @@ model Business {
   openingHours OpeningHours[]
   specialHours SpecialHours[]
   catalog      CatalogItem[]
+  photos       Photo[]
   posts        Post[]
   pages        Page[]
   changes      Change[]
@@ -116,7 +119,21 @@ model CatalogItem {
   description String   @default("")
   price       Float?
   available   Boolean  @default(true)
+  /// Foto della voce (URL Cloudinary)
+  image       String?
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+/// Galleria di foto dell'attività, nell'ordine in cui si mostra.
+model Photo {
+  id         String   @id
+  businessId String
+  position   Int
+  url        String
+  caption    String   @default("")
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@index([businessId])
 }

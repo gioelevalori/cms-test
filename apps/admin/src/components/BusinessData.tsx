@@ -1,15 +1,18 @@
-import { WEEKDAY_NAMES, categoryProfile, formatDateIt, type BusinessData as Data, type ChangeOp, type Weekday } from '@cms/shared';
+import { WEEKDAY_NAMES, categoryProfile, formatDateIt, photoUrl, type BusinessData as Data, type ChangeOp, type Weekday } from '@cms/shared';
+import { FilePick } from './Photos';
 
 interface Props {
   data: Data;
   onOps: (ops: ChangeOp[]) => void;
   busy: boolean;
+  /** Carica una foto e restituisce l'URL (foto delle voci). */
+  upload: (file: File) => Promise<string>;
 }
 
 const euro = (n: number | null) => (n === null ? '' : `${n.toFixed(2).replace('.', ',')} €`);
 
 /** Vista dei dati attuali. Le azioni rapide generano operazioni strutturate. */
-export function BusinessDataView({ data, onOps, busy }: Props) {
+export function BusinessDataView({ data, onOps, busy, upload }: Props) {
   const sections = [...new Set(data.catalog.map((i) => i.section))];
   const days = [1, 2, 3, 4, 5, 6, 7] as Weekday[];
 
@@ -56,7 +59,15 @@ export function BusinessDataView({ data, onOps, busy }: Props) {
             <ul className="plain">
               {data.catalog.filter((i) => i.section === section).map((item) => (
                 <li key={item.id} className={`row-between ${item.available ? '' : 'unavailable'}`}>
-                  <span>{item.name} <span className="muted">{euro(item.price)}</span></span>
+                  <span className="item-name">
+                    {item.image && <img className="item-thumb" src={photoUrl(item.image, { w: 80, h: 80 })} alt="" />}
+                    {item.name} <span className="muted">{euro(item.price)}</span>
+                  </span>
+                  <FilePick
+                    label={item.image ? 'Cambia foto' : 'Foto'}
+                    disabled={busy}
+                    onFiles={([file]) => file && upload(file).then((url) => onOps([{ op: 'setItemImage', itemId: item.id, url }]), () => {})}
+                  />
                   <button
                     className="ghost small"
                     disabled={busy}

@@ -346,3 +346,25 @@ export function interpretMessage(message: string, data: BusinessData, today: Iso
   }
   return { ops, unrecognized };
 }
+
+/**
+ * Una foto arrivata con una didascalia (da WhatsApp o dal pannello) diventa:
+ * copertina se la didascalia lo dice, la foto di una voce nuova o esistente se la nomina,
+ * altrimenti una foto della galleria con la didascalia.
+ */
+export function interpretPhoto(caption: string, url: string, data: BusinessData, today: IsoDate): Interpretation {
+  const text = normalize(caption);
+  if (/\bcopertina\b/.test(text)) return { ops: [{ op: 'setCover', url }], unrecognized: [] };
+
+  const fromText = text ? interpretMessage(caption, data, today) : { ops: [], unrecognized: [] };
+  const added = fromText.ops.find((o) => o.op === 'addCatalogItem');
+  if (added && added.op === 'addCatalogItem') {
+    added.image = url;
+    return fromText;
+  }
+  const item = findItem(text, data.catalog);
+  if (item) return { ops: [{ op: 'setItemImage', itemId: item.id, url }], unrecognized: [] };
+
+  const clean = caption.replace(/^\s*(?:foto|galleria|aggiungi(?: alla galleria)?|nella galleria)\s*:?\s*/i, '').trim();
+  return { ops: [{ op: 'addPhoto', url, caption: clean.slice(0, 200) }], unrecognized: [] };
+}

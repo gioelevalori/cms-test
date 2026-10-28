@@ -1,4 +1,4 @@
-import { WEEKDAY_NAMES, addDays, categoryProfile, formatDateIt, todayIn, weekdayOf, type BusinessData, type PageBlock, type Weekday } from '@cms/shared';
+import { WEEKDAY_NAMES, addDays, categoryProfile, photoUrl, formatDateIt, todayIn, weekdayOf, type BusinessData, type PageBlock, type Weekday } from '@cms/shared';
 
 const euro = (n: number | null) => (n === null ? '' : `${n.toFixed(2).replace('.', ',')} €`);
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as Weekday[];
@@ -61,7 +61,8 @@ function Catalog({ data, title }: { data: BusinessData; title: string }) {
           <ul className="items">
             {data.catalog.filter((i) => i.section === section).map((i) => (
               <li key={i.id} className={i.available ? '' : 'sold-out'}>
-                <div>
+                {i.image && <img className="thumb" src={photoUrl(i.image, { w: 160, h: 160 })} alt="" loading="lazy" width={64} height={64} />}
+                <div className="text">
                   <span className="name">{i.name}</span>
                   {i.description && <span className="desc">{i.description}</span>}
                 </div>
@@ -73,6 +74,34 @@ function Catalog({ data, title }: { data: BusinessData; title: string }) {
       ))}
     </section>
   );
+}
+
+function Gallery({ data, title }: { data: BusinessData; title: string }) {
+  const photos = data.photos ?? [];
+  if (photos.length === 0) return null;
+  return (
+    <section className="block gallery" id="foto">
+      <h2>{title}</h2>
+      <ul>
+        {photos.map((p) => (
+          <li key={p.id}>
+            <figure>
+              <img src={photoUrl(p.url, { w: 720, h: 540 })} alt={p.caption || `Foto di ${data.name}`} loading="lazy" width={360} height={270} />
+              {p.caption && <figcaption>{p.caption}</figcaption>}
+            </figure>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** I siti creati prima della galleria non hanno il blocco: compare comunque, prima dei contatti. */
+function withGallery(layout: PageBlock[], data: BusinessData): PageBlock[] {
+  if (!data.photos?.length || layout.some((b) => b.type === 'gallery')) return layout;
+  const at = layout.findIndex((b) => b.type === 'contacts');
+  const gallery: PageBlock = { id: 'gallery-auto', type: 'gallery', options: { title: 'Foto' } };
+  return at < 0 ? [...layout, gallery] : [...layout.slice(0, at), gallery, ...layout.slice(at)];
 }
 
 function Posts({ data, limit }: { data: BusinessData; limit: number }) {
@@ -95,12 +124,16 @@ export function Blocks({ layout, data, timezone }: { layout: PageBlock[]; data: 
   const profile = categoryProfile(data.category);
   return (
     <>
-      {layout.map((block) => {
+      {withGallery(layout, data).map((block) => {
         const title = String(block.options.title ?? '');
         switch (block.type) {
           case 'hero':
             return (
-              <header key={block.id} className="hero">
+              <header
+                key={block.id}
+                className={data.cover ? 'hero with-cover' : 'hero'}
+                style={data.cover ? { backgroundImage: `linear-gradient(rgb(0 0 0 / .45), rgb(0 0 0 / .55)), url(${photoUrl(data.cover, { w: 1600 })})` } : undefined}
+              >
                 <h1>{data.name}</h1>
                 {block.options.subtitle ? <p>{String(block.options.subtitle)}</p> : <p>{todayStatus(data, todayIn(timezone))}</p>}
                 {data.catalog.length > 0 && <a className="cta" href="#menu">{profile.catalogCta}</a>}
@@ -114,6 +147,8 @@ export function Blocks({ layout, data, timezone }: { layout: PageBlock[]; data: 
             return <Hours key={block.id} data={data} title={title || 'Orari'} timezone={timezone} />;
           case 'catalog':
             return <Catalog key={block.id} data={data} title={title || profile.catalogTitle} />;
+          case 'gallery':
+            return <Gallery key={block.id} data={data} title={title || 'Foto'} />;
           case 'posts':
             return <Posts key={block.id} data={data} limit={Number(block.options.limit ?? 3)} />;
           case 'contacts':

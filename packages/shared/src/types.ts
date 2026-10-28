@@ -37,6 +37,15 @@ export interface CatalogItem {
   /** Prezzo in euro, null se non indicato. */
   price: number | null;
   available: boolean;
+  /** Foto della voce (URL Cloudinary), se c'è. */
+  image?: string | null;
+}
+
+/** Una foto della galleria. */
+export interface Photo {
+  id: string;
+  url: string;
+  caption: string;
 }
 
 export type PostKind = 'news' | 'event' | 'offer';
@@ -57,6 +66,10 @@ export interface BusinessData {
   phone: string;
   email: string;
   address: string;
+  /** Foto di copertina in cima al sito. Assente nei dati salvati prima delle foto. */
+  cover?: string | null;
+  /** Galleria, nell'ordine in cui si mostra. */
+  photos?: Photo[];
   openingHours: OpeningHours[];
   specialHours: SpecialHours[];
   catalog: CatalogItem[];

@@ -7,6 +7,7 @@ const LABELS: Record<PageBlock['type'], string> = {
   about: 'Chi siamo',
   hours: 'Orari',
   catalog: 'Menu / listino',
+  gallery: 'Galleria foto',
   posts: 'Notizie ed eventi',
   contacts: 'Contatti',
   text: 'Testo libero',

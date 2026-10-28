@@ -1,4 +1,8 @@
 import type { BusinessData, CatalogItem, IsoDate, Post, PostKind, Time, TimeSlot, Weekday } from './types';
+
+/** Le foto stanno su Cloudinary: si accettano solo indirizzi https di Cloudinary. */
+export const isPhotoUrl = (v: unknown): v is string =>
+  typeof v === 'string' && v.length <= 500 && /^https:\/\/res\.cloudinary\.com\/[\w-]+\/image\/upload\/\S+$/.test(v);
 import { WEEKDAY_NAMES } from './types';
 import { formatDateIt } from './dates';
 
@@ -10,12 +14,16 @@ export type ChangeOp =
   | { op: 'setWeeklyHours'; weekday: Weekday; slots: TimeSlot[] }
   | { op: 'setSpecialHours'; date: IsoDate; closed: boolean; opens: Time | null; closes: Time | null; note: string | null }
   | { op: 'removeSpecialHours'; date: IsoDate }
-  | { op: 'addCatalogItem'; section: string; name: string; description: string; price: number | null }
+  | { op: 'addCatalogItem'; section: string; name: string; description: string; price: number | null; image?: string | null }
   | { op: 'setItemPrice'; itemId: string; price: number }
   | { op: 'setItemAvailability'; itemId: string; available: boolean }
   | { op: 'removeCatalogItem'; itemId: string }
   | { op: 'addPost'; kind: PostKind; title: string; body: string; startsAt: IsoDate | null; endsAt: IsoDate | null }
-  | { op: 'setContact'; field: 'phone' | 'email' | 'address' | 'description'; value: string };
+  | { op: 'setContact'; field: 'phone' | 'email' | 'address' | 'description'; value: string }
+  | { op: 'setCover'; url: string | null }
+  | { op: 'addPhoto'; url: string; caption: string }
+  | { op: 'removePhoto'; photoId: string }
+  | { op: 'setItemImage'; itemId: string; url: string | null };
 
 export type IdGenerator = () => string;
 
@@ -48,7 +56,7 @@ export function isValidOp(value: unknown): value is ChangeOp {
       return isDate(o.date);
     case 'addCatalogItem':
       return isStr(o.section, 100) && isStr(o.name, 200) && (o.name as string).length > 0 && isStr(o.description, 1000) &&
-        (o.price === null || (typeof o.price === 'number' && o.price >= 0));
+        (o.price === null || (typeof o.price === 'number' && o.price >= 0)) && (o.image === undefined || o.image === null || isPhotoUrl(o.image));
     case 'setItemPrice':
       return isStr(o.itemId, 100) && typeof o.price === 'number' && o.price >= 0;
     case 'setItemAvailability':
@@ -60,6 +68,14 @@ export function isValidOp(value: unknown): value is ChangeOp {
         isDateOrNull(o.startsAt) && isDateOrNull(o.endsAt);
     case 'setContact':
       return CONTACT_FIELDS.includes(o.field as string) && isStr(o.value, 2000);
+    case 'setCover':
+      return o.url === null || isPhotoUrl(o.url);
+    case 'addPhoto':
+      return isPhotoUrl(o.url) && isStr(o.caption, 200);
+    case 'removePhoto':
+      return isStr(o.photoId, 100);
+    case 'setItemImage':
+      return isStr(o.itemId, 100) && (o.url === null || isPhotoUrl(o.url));
     default:
       return false;
   }
@@ -91,7 +107,7 @@ export function applyOps(input: BusinessData, ops: ChangeOp[], newId: IdGenerato
         data.specialHours = data.specialHours.filter((s) => s.date !== op.date);
         break;
       case 'addCatalogItem':
-        data.catalog.push({ id: newId(), section: op.section, name: op.name, description: op.description, price: op.price, available: true });
+        data.catalog.push({ id: newId(), section: op.section, name: op.name, description: op.description, price: op.price, available: true, ...(op.image ? { image: op.image } : {}) });
         break;
       case 'setItemPrice':
         findItem(data, op.itemId).price = op.price;
@@ -110,6 +126,19 @@ export function applyOps(input: BusinessData, ops: ChangeOp[], newId: IdGenerato
       }
       case 'setContact':
         data[op.field] = op.value;
+        break;
+      case 'setCover':
+        data.cover = op.url;
+        break;
+      case 'addPhoto':
+        data.photos = [...(data.photos ?? []), { id: newId(), url: op.url, caption: op.caption }];
+        break;
+      case 'removePhoto':
+        if (!data.photos?.some((p) => p.id === op.photoId)) throw new Error(`Foto non trovata: ${op.photoId}`);
+        data.photos = data.photos.filter((p) => p.id !== op.photoId);
+        break;
+      case 'setItemImage':
+        findItem(data, op.itemId).image = op.url;
         break;
     }
   }
@@ -135,7 +164,7 @@ export function describeOp(op: ChangeOp, data: BusinessData): string {
     case 'removeSpecialHours':
       return `${formatDateIt(op.date)}: torna l'orario normale`;
     case 'addCatalogItem':
-      return `Nuova voce in "${op.section}": ${op.name}${op.price !== null ? ` a ${euro(op.price)}` : ''}`;
+      return `Nuova voce in "${op.section}": ${op.name}${op.price !== null ? ` a ${euro(op.price)}` : ''}${op.image ? ', con foto' : ''}`;
     case 'setItemPrice':
       return `${itemName(op.itemId)}: nuovo prezzo ${euro(op.price)}`;
     case 'setItemAvailability':
@@ -150,5 +179,24 @@ export function describeOp(op: ChangeOp, data: BusinessData): string {
       const label = { phone: 'Telefono', email: 'Email', address: 'Indirizzo', description: 'Descrizione' }[op.field];
       return `${label}: ${op.value}`;
     }
+    case 'setCover':
+      return op.url ? 'Nuova foto di copertina' : 'Togli la foto di copertina';
+    case 'addPhoto':
+      return `Nuova foto nella galleria${op.caption ? `: ${op.caption}` : ''}`;
+    case 'removePhoto': {
+      const caption = data.photos?.find((p) => p.id === op.photoId)?.caption;
+      return `Togli la foto${caption ? ` "${caption}"` : ''} dalla galleria`;
+    }
+    case 'setItemImage':
+      return `${itemName(op.itemId)}: ${op.url ? 'nuova foto' : 'togli la foto'}`;
   }
+}
+
+/**
+ * Versione ridimensionata di una foto Cloudinary: formato e qualità scelti da Cloudinary
+ * per il browser, ritaglio al centro se si danno larghezza e altezza.
+ */
+export function photoUrl(url: string, size: { w: number; h?: number }): string {
+  const t = ['f_auto', 'q_auto', size.h ? `c_fill,g_auto,w_${size.w},h_${size.h}` : `c_limit,w_${size.w}`].join(',');
+  return url.replace('/image/upload/', `/image/upload/${t}/`);
 }

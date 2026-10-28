@@ -6,11 +6,11 @@ import { categoryProfile } from './categories';
  */
 export interface PageBlock {
   id: string;
-  type: 'hero' | 'about' | 'hours' | 'catalog' | 'posts' | 'contacts' | 'text';
+  type: 'hero' | 'about' | 'hours' | 'catalog' | 'gallery' | 'posts' | 'contacts' | 'text';
   options: Record<string, string | number | boolean>;
 }
 
-export const BLOCK_TYPES: PageBlock['type'][] = ['hero', 'about', 'hours', 'catalog', 'posts', 'contacts', 'text'];
+export const BLOCK_TYPES: PageBlock['type'][] = ['hero', 'about', 'hours', 'catalog', 'gallery', 'posts', 'contacts', 'text'];
 
 export function isValidLayout(value: unknown): value is PageBlock[] {
   return (
@@ -31,6 +31,7 @@ export const DEFAULT_LAYOUT: PageBlock[] = [
   { id: 'hero', type: 'hero', options: { subtitle: '' } },
   { id: 'posts', type: 'posts', options: { limit: 3 } },
   { id: 'catalog', type: 'catalog', options: { title: 'Menu' } },
+  { id: 'gallery', type: 'gallery', options: { title: 'Foto' } },
   { id: 'hours', type: 'hours', options: { title: 'Orari' } },
   { id: 'about', type: 'about', options: { title: 'Chi siamo' } },
   { id: 'contacts', type: 'contacts', options: { title: 'Contatti' } },

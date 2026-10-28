@@ -33,6 +33,8 @@ services:
         sync: false
       - key: WHATSAPP_APP_SECRET
         sync: false
+      - key: CLOUDINARY_URL
+        sync: false
       - key: ADMIN_ORIGIN
         sync: false
       - key: PUBLIC_SITE_URL

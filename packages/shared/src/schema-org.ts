@@ -30,6 +30,7 @@ export function toSchemaOrg(data: BusinessData, url: string): Record<string, unk
   ];
 
   const profile = categoryProfile(data.category);
+  const images = [data.cover, ...(data.photos ?? []).map((p) => p.url)].filter((u): u is string => Boolean(u));
   const sections = [...new Set(data.catalog.map((i) => i.section))];
   const offer = (i: CatalogItem) => (i.price !== null ? { '@type': 'Offer', price: i.price.toFixed(2), priceCurrency: 'EUR' } : undefined);
   const available = (section: string) => data.catalog.filter((i) => i.section === section && i.available);
@@ -45,6 +46,7 @@ export function toSchemaOrg(data: BusinessData, url: string): Record<string, unk
             '@type': 'MenuItem',
             name: i.name,
             description: i.description || undefined,
+            image: i.image || undefined,
             offers: offer(i),
           })),
         })),
@@ -59,7 +61,7 @@ export function toSchemaOrg(data: BusinessData, url: string): Record<string, unk
           name: section,
           itemListElement: available(section).map((i) => ({
             ...(offer(i) ?? { '@type': 'Offer' }),
-            itemOffered: { '@type': profile.id === 'shop' ? 'Product' : 'Service', name: i.name, description: i.description || undefined },
+            itemOffered: { '@type': profile.id === 'shop' ? 'Product' : 'Service', name: i.name, description: i.description || undefined, image: i.image || undefined },
           })),
         })),
       }
@@ -70,6 +72,7 @@ export function toSchemaOrg(data: BusinessData, url: string): Record<string, unk
     '@type': profile.schemaType,
     name: data.name,
     description: data.description || undefined,
+    image: images.length ? images : undefined,
     url,
     telephone: data.phone || undefined,
     email: data.email || undefined,

@@ -20,6 +20,7 @@ export class BusinessDataService {
         openingHours: { orderBy: [{ weekday: 'asc' }, { opens: 'asc' }] },
         specialHours: { orderBy: { date: 'asc' } },
         catalog: { orderBy: { position: 'asc' } },
+        photos: { orderBy: { position: 'asc' } },
         posts: { orderBy: { position: 'asc' } },
       },
     });
@@ -31,9 +32,11 @@ export class BusinessDataService {
       phone: b.phone,
       email: b.email,
       address: b.address,
+      cover: b.coverUrl,
+      photos: b.photos.map((p) => ({ id: p.id, url: p.url, caption: p.caption })),
       openingHours: b.openingHours.map((h) => ({ weekday: h.weekday as Weekday, opens: h.opens, closes: h.closes })),
       specialHours: b.specialHours.map((s) => ({ date: s.date, closed: s.closed, opens: s.opens, closes: s.closes, note: s.note })),
-      catalog: b.catalog.map((i) => ({ id: i.id, section: i.section, name: i.name, description: i.description, price: i.price, available: i.available })),
+      catalog: b.catalog.map((i) => ({ id: i.id, section: i.section, name: i.name, description: i.description, price: i.price, available: i.available, image: i.image })),
       posts: b.posts.map((p) => ({ id: p.id, kind: p.kind as PostKind, title: p.title, body: p.body, startsAt: p.startsAt, endsAt: p.endsAt })),
     };
   }
@@ -42,15 +45,18 @@ export class BusinessDataService {
   async save(tx: Tx, businessId: string, data: BusinessData): Promise<void> {
     await tx.business.update({
       where: { id: businessId },
-      data: { name: data.name, category: data.category, description: data.description, phone: data.phone, email: data.email, address: data.address },
+      data: { name: data.name, category: data.category, description: data.description, phone: data.phone, email: data.email, address: data.address, coverUrl: data.cover ?? null },
     });
     await tx.openingHours.deleteMany({ where: { businessId } });
     await tx.specialHours.deleteMany({ where: { businessId } });
     await tx.catalogItem.deleteMany({ where: { businessId } });
     await tx.post.deleteMany({ where: { businessId } });
+    await tx.photo.deleteMany({ where: { businessId } });
     await tx.openingHours.createMany({ data: data.openingHours.map((h) => ({ businessId, ...h })) });
     await tx.specialHours.createMany({ data: data.specialHours.map((s) => ({ businessId, ...s })) });
     await tx.catalogItem.createMany({ data: data.catalog.map((i, position) => ({ businessId, position, ...i })) });
     await tx.post.createMany({ data: data.posts.map((p, position) => ({ businessId, position, ...p })) });
+    // I dati salvati prima delle foto (es. snapshot da annullare) non hanno photos né image.
+    await tx.photo.createMany({ data: (data.photos ?? []).map((p, position) => ({ businessId, position, ...p })) });
   }
 }

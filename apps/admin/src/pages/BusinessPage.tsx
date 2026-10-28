@@ -8,6 +8,7 @@ import { BusinessDataView } from '../components/BusinessData';
 import { History } from '../components/History';
 import { LayoutEditor } from '../components/LayoutEditor';
 import { WhatsAppCard } from '../components/WhatsAppCard';
+import { Photos } from '../components/Photos';
 
 export function BusinessPage() {
   const { businessId = '' } = useParams();
@@ -40,6 +41,15 @@ export function BusinessPage() {
   // Le azioni rapide sono modifiche come le altre: proposta + conferma immediata, quindi annullabili.
   const applyOps = (ops: ChangeOp[]) => run(async () => api.confirm((await api.proposeOps(businessId, ops)).id));
   const undo = (c: Change) => run(() => api.undo(c.id));
+  const upload = async (file: File) => {
+    setError(null);
+    try {
+      return await api.uploadPhoto(businessId, file);
+    } catch (err) {
+      setError((err as Error).message);
+      throw err;
+    }
+  };
   const saveLayout = (layout: PageBlock[]) =>
     run(async () => {
       await api.savePage(businessId, 'home', layout);
@@ -82,7 +92,8 @@ export function BusinessPage() {
           {isBuilder && pages.data?.[0] && <LayoutEditor page={pages.data[0]} onSave={saveLayout} busy={busy} />}
         </div>
         <div className="col">
-          <BusinessDataView data={b.data} onOps={applyOps} busy={busy} />
+          <Photos data={b.data} busy={busy} upload={upload} onOps={applyOps} />
+          <BusinessDataView data={b.data} onOps={applyOps} busy={busy} upload={upload} />
         </div>
       </div>
     </div>

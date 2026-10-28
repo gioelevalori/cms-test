@@ -46,6 +46,21 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
+/** Carica una foto (multipart): restituisce l'URL, che poi entra nei dati con una modifica. */
+async function uploadPhoto(businessId: string, file: File): Promise<string> {
+  const token = getToken();
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${API_URL}/businesses/${businessId}/photos`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(res.status, body?.message ?? `Errore ${res.status}`);
+  return body.url as string;
+}
+
 export interface BusinessSummary { id: string; slug: string; name: string; role: Role }
 export interface BusinessDetail { id: string; slug: string; timezone: string; role: Role; data: BusinessData }
 export interface Change {
@@ -77,6 +92,7 @@ export const api = {
   setCategory: (id: string, category: string) =>
     request<{ category: string }>(`/businesses/${id}/category`, { method: 'PUT', body: JSON.stringify({ category }) }),
   business: (id: string) => request<BusinessDetail>(`/businesses/${id}`),
+  uploadPhoto,
   chat: (id: string, message: string) => post<ChatResult>(`/businesses/${id}/chat`, { message }),
   proposeOps: (id: string, ops: ChangeOp[]) => post<Change>(`/businesses/${id}/changes`, { ops }),
   changes: (id: string) => request<Change[]>(`/businesses/${id}/changes`),

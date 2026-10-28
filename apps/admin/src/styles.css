@@ -90,3 +90,15 @@ select { font: inherit; padding: 10px 12px; border: 1px solid var(--line); borde
 select:focus { outline: 2px solid var(--brand); outline-offset: 0; border-color: transparent; }
 .category-pick { flex-direction: row; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--muted); }
 .category-pick select { width: auto; padding: 4px 8px; font-size: 13px; }
+
+/* Foto */
+.photos h3 { margin: 16px 0 8px; font-size: 14px; }
+.cover-row { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.cover-thumb { width: 240px; max-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.photo-actions { display: flex; gap: 8px; align-items: center; }
+.gallery-grid { list-style: none; padding: 0; margin: 0 0 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+.gallery-grid li { position: relative; }
+.gallery-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; }
+.gallery-grid .remove { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; padding: 0; border-radius: 50%; background: rgb(18 22 27 / .7); color: #fff; font-size: 16px; line-height: 1; }
+.item-name { display: inline-flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.item-thumb { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; flex: none; }

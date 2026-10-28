@@ -1,7 +1,7 @@
 // Test end-to-end: richiede API avviata, database con seed. Uso: API_URL=http://localhost:3000 node scripts/e2e.mjs
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { createHmac } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 
 const API = process.env.API_URL ?? 'http://localhost:3000';
 let passed = 0;
@@ -125,6 +125,15 @@ const graph = http.createServer((req, res) => {
   let raw = '';
   req.on('data', (c) => (raw += c));
   req.on('end', () => {
+    // Foto ricevute: Graph dà l'indirizzo del file, poi il file stesso (con lo stesso token).
+    if (req.method === 'GET' && req.url.endsWith('/media-foto')) {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify({ url: 'http://localhost:3999/file/media-foto', mime_type: 'image/jpeg' }));
+    }
+    if (req.method === 'GET' && req.url === '/file/media-foto') {
+      res.writeHead(req.headers.authorization === 'Bearer test-token' ? 200 : 401, { 'content-type': 'image/jpeg' });
+      return res.end(Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    }
     const status = graphFailures > 0 ? (graphFailures--, 503) : 200;
     outbox.push({ status, url: req.url, auth: req.headers.authorization, body: JSON.parse(raw) });
     res.writeHead(status, { 'content-type': 'application/json' });
@@ -132,6 +141,28 @@ const graph = http.createServer((req, res) => {
   });
 });
 await new Promise((r) => graph.listen(3999, r));
+
+// Finto Cloudinary: controlla la firma e restituisce un URL come quelli veri.
+const uploads = [];
+const cloudinary = http.createServer((req, res) => {
+  const chunks = [];
+  req.on('data', (c) => chunks.push(c));
+  req.on('end', () => {
+    const body = Buffer.concat(chunks).toString('latin1');
+    const field = (name) => body.match(new RegExp(`name="${name}"\r\n\r\n([^\r]*)`))?.[1];
+    const [, , secret] = (process.env.CLOUDINARY_URL ?? 'cloudinary://ci-key:ci-secret@ci-cloud').match(/^cloudinary:\/\/([^:]+):([^@]+)@/);
+    const expected = createHash('sha1').update(`folder=${field('folder')}&timestamp=${field('timestamp')}${secret}`).digest('hex');
+    if (req.url !== '/v1_1/ci-cloud/image/upload' || field('signature') !== expected) {
+      res.writeHead(401, { 'content-type': 'application/json' });
+      return res.end('{"error":{"message":"firma non valida"}}');
+    }
+    const url = `https://res.cloudinary.com/ci-cloud/image/upload/v1/${field('folder')}/foto${uploads.length + 1}.jpg`;
+    uploads.push(url);
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ secure_url: url }));
+  });
+});
+await new Promise((r) => cloudinary.listen(3998, r));
 
 const PHONE = '393331234567';
 const SECRET = process.env.WHATSAPP_APP_SECRET ?? 'ci-app-secret';
@@ -333,5 +364,41 @@ await step('tipo di attività: sezioni, aiuto WhatsApp e schema.org seguono il t
   assert.equal(site.pages[0].layout.find((b) => b.type === 'catalog').options.title, 'Prestazioni');
 });
 
+await step('foto dal pannello: caricamento, copertina, galleria e foto di una voce sul sito', async () => {
+  const form = new FormData();
+  form.append('file', new Blob([Buffer.from([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' }), 'sala.jpg');
+  const up = await fetch(`${API}/businesses/${businessId}/photos`, { method: 'POST', headers: { authorization: `Bearer ${client}` }, body: form });
+  assert.equal(up.status, 201, await up.clone().text());
+  const { url } = await up.json();
+  assert.match(url, /^https:\/\/res\.cloudinary\.com\/ci-cloud\/image\/upload\//);
+  const bad = new FormData();
+  bad.append('file', new Blob(['ciao'], { type: 'text/plain' }), 'x.txt');
+  assert.equal((await fetch(`${API}/businesses/${businessId}/photos`, { method: 'POST', headers: { authorization: `Bearer ${client}` }, body: bad })).status, 400);
+  assert.equal((await call('POST', `/businesses/${businessId}/changes`, { token: client, body: { ops: [{ op: 'setCover', url: 'https://evil.example/x.jpg' }] } })).status, 400);
+  const site = (await publicSite()).data;
+  const itemId = site.catalog[0].id;
+  const p = await call('POST', `/businesses/${businessId}/changes`, { token: client, body: { ops: [
+    { op: 'setCover', url }, { op: 'addPhoto', url, caption: 'La sala' }, { op: 'setItemImage', itemId, url },
+  ] } });
+  assert.equal(p.status, 201, JSON.stringify(p.body));
+  assert.equal((await call('POST', `/changes/${p.body.id}/confirm`, { token: client })).status, 201);
+  const after = (await publicSite()).data;
+  assert.equal(after.cover, url);
+  assert.deepEqual(after.photos.map((x) => x.caption), ['La sala']);
+  assert.equal(after.catalog[0].image, url);
+});
+
+await step('foto da WhatsApp: con "copertina" nella didascalia diventa la copertina', async () => {
+  // Il numero di prova ora aggiorna lo studio (tipo "doctor"): la foto va lì.
+  const msg = { id: `wamid.in${++seq}`, from: PHONE, timestamp: '1', type: 'image', image: { id: 'media-foto', caption: 'Copertina', mime_type: 'image/jpeg' } };
+  const p = await send([msg]);
+  assert.equal(p.type, 'interactive');
+  assert.match(p.interactive.body.text, /Nuova foto di copertina/);
+  const done = await send([buttonMsg(p.interactive.action.buttons[0].reply.id)]);
+  assert.match(done.text.body, /Fatto/);
+  assert.equal(uploads.length, 2);
+});
+
 graph.close();
+cloudinary.close();
 console.log(`\n${passed} controlli superati`);

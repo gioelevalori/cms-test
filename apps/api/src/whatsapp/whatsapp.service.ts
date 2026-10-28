@@ -1,9 +1,10 @@
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { HttpException, Injectable, Logger, Optional } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { categoryProfile } from '@cms/shared';
 import { ChangesService } from '../changes/changes.service';
 import type { WhatsAppClient } from './whatsapp.client';
 import { LINK_MESSAGE } from './whatsapp-link.controller';
+import { WhatsAppMediaService } from './whatsapp-media.service';
 
 /** Un messaggio in arrivo, già estratto dal webhook di Meta. */
 export interface InboundWhatsApp {
@@ -11,6 +12,7 @@ export interface InboundWhatsApp {
   from: string;
   text?: string;
   buttonId?: string;
+  image?: { id: string; caption?: string };
 }
 type Replies = Pick<WhatsAppClient, 'sendText' | 'sendButtons'>;
 
@@ -19,6 +21,8 @@ function help(category = ''): string {
   return [
     'Scrivimi cosa cambia, come lo diresti a un collaboratore. Per esempio:',
     ...categoryProfile(category).examples.map((e) => `• ${e}`),
+    '',
+    'Puoi mandare anche una foto: scrivi "copertina" o il nome di una voce nella didascalia, altrimenti va nella galleria.',
     '',
     'Ti mostro sempre l’anteprima prima di cambiare il sito. Scrivi "annulla" per annullare l’ultima modifica.',
   ].join('\n');
@@ -39,7 +43,10 @@ const LINK_RE = new RegExp(`^\\s*${LINK_MESSAGE}\\s+([a-z0-9]{6})\\s*[.!]?\\s*$`
 export class WhatsAppService {
   private readonly logger = new Logger(WhatsAppService.name);
 
-  constructor(private readonly changes: ChangesService) {}
+  constructor(
+    private readonly changes: ChangesService,
+    @Optional() private readonly media?: WhatsAppMediaService,
+  ) {}
 
   async handle(msg: InboundWhatsApp, db: Prisma.TransactionClient, reply: Replies): Promise<void> {
     const link = (msg.text ?? '').match(LINK_RE);
@@ -66,9 +73,10 @@ export class WhatsAppService {
 
     try {
       if (msg.buttonId) return await this.handleButton(db, reply, user.id, msg.from, msg.buttonId);
+      if (msg.image) return await this.photo(db, reply, user.id, msg.from, businessId, msg.image);
       const text = (msg.text ?? '').trim();
       const helpText = help(membership.business.category);
-      if (!text) return await reply.sendText(msg.from, 'Per ora capisco solo messaggi di testo.\n\n' + helpText);
+      if (!text) return await reply.sendText(msg.from, 'Capisco messaggi di testo e foto.\n\n' + helpText);
       if (HELP_RE.test(text)) return await reply.sendText(msg.from, `Ciao! Qui aggiorni il sito di ${membership.business.name}.\n\n${helpText}`);
       if (YES.test(text) || NO.test(text)) return await this.answerPending(db, reply, user.id, msg.from, businessId, YES.test(text));
       if (UNDO.test(text)) return await this.undoLast(db, reply, user.id, msg.from, businessId);
@@ -77,17 +85,31 @@ export class WhatsAppService {
       if (!('id' in result)) {
         return await reply.sendText(msg.from, `Non ho capito il messaggio.\n\n${helpText}`);
       }
-      const lines = result.summary.map((s: string) => `• ${s}`).join('\n');
-      const unclear = result.unrecognized.length ? `\n\nNon ho capito: “${result.unrecognized.join('”, “')}”` : '';
-      await reply.sendButtons(msg.from, `Ecco cosa cambierà:\n${lines}${unclear}\n\nConfermi?`, [
-        { id: `confirm:${result.id}`, title: 'Conferma' },
-        { id: `reject:${result.id}`, title: 'Annulla' },
-      ]);
+      await this.preview(reply, msg.from, result);
     } catch (err) {
       // Un errore tecnico fa rollback e verrà ritentato. Un conflitto del cliente è definitivo.
       if (!(err instanceof HttpException) || err.getStatus() >= 500) throw err;
       await reply.sendText(msg.from, `Non sono riuscito a completare l'operazione: ${err.message}`);
     }
+  }
+
+  private preview(reply: Replies, to: string, change: { id: string; summary: string[]; unrecognized: string[] }) {
+    const lines = change.summary.map((s) => `• ${s}`).join('\n');
+    const unclear = change.unrecognized.length ? `\n\nNon ho capito: “${change.unrecognized.join('”, “')}”` : '';
+    return reply.sendButtons(to, `Ecco cosa cambierà:\n${lines}${unclear}\n\nConfermi?`, [
+      { id: `confirm:${change.id}`, title: 'Conferma' },
+      { id: `reject:${change.id}`, title: 'Annulla' },
+    ]);
+  }
+
+  /** Foto con didascalia: "copertina", il nome di una voce, "Aggiungi la tagliata a 18 euro" o niente (galleria). */
+  private async photo(db: Prisma.TransactionClient, reply: Replies, userId: string, to: string, businessId: string, image: { id: string; caption?: string }) {
+    if (!this.media?.enabled) {
+      return reply.sendText(to, 'Le foto da WhatsApp non sono ancora attive su questo sito. Per ora aggiungile dal pannello.');
+    }
+    const url = await this.media.toCloudinary(image.id, businessId);
+    const change = await this.changes.proposeFromPhoto(userId, businessId, (image.caption ?? '').trim(), url, db);
+    return this.preview(reply, to, change);
   }
 
   /**

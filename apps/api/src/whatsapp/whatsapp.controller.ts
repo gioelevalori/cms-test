@@ -17,6 +17,7 @@ interface WebhookMessage {
   text?: { body: string };
   interactive?: { type: string; button_reply?: { id: string; title: string } };
   button?: { payload?: string; text?: string };
+  image?: { id: string; caption?: string; mime_type?: string };
 }
 
 /** Webhook di WhatsApp Cloud API: verifica (GET) e messaggi in arrivo (POST). */
@@ -79,6 +80,7 @@ export class WhatsAppController {
             from: m.from,
             text: m.type === 'text' ? m.text?.body : undefined,
             buttonId: m.interactive?.button_reply?.id ?? m.button?.payload,
+            ...(m.type === 'image' && m.image?.id ? { image: { id: m.image.id, caption: m.image.caption ?? '' } } : {}),
           });
         }
       }

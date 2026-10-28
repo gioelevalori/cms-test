@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
-import { applyOps, describeOp, isValidOp, todayIn, type BusinessData, type ChangeOp } from '@cms/shared';
+import { applyOps, describeOp, interpretPhoto, isValidOp, todayIn, type BusinessData, type ChangeOp } from '@cms/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { BusinessDataService } from '../business/business-data.service';
 import { MembershipService } from '../business/membership.service';
@@ -34,6 +34,17 @@ export class ChangesService {
       const change = await this.createProposal(tx, userId, businessId, transaction ? 'whatsapp' : 'chat', message, before, result.ops);
       return { ...change, unrecognized: result.unrecognized, engine: result.engine };
     });
+  }
+
+  /** Foto arrivata da WhatsApp, già caricata: la didascalia dice dove va (copertina, voce, galleria). */
+  async proposeFromPhoto(userId: string, businessId: string, caption: string, url: string, tx: Prisma.TransactionClient) {
+    await this.membership.roleOf(userId, businessId, tx);
+    await this.lockBusiness(tx, businessId);
+    const business = await tx.business.findUniqueOrThrow({ where: { id: businessId }, select: { timezone: true } });
+    const before = await this.data.load(businessId, tx);
+    const result = interpretPhoto(caption, url, before, todayIn(business.timezone));
+    const change = await this.createProposal(tx, userId, businessId, 'whatsapp', caption || '(foto)', before, result.ops);
+    return { ...change, unrecognized: result.unrecognized };
   }
 
   /** Modifica strutturata (pulsanti e moduli dell'admin). */

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretMessage, applyOps, describeOp, toSchemaOrg, nextWeekday, weekdayOf, isValidOp, CATEGORIES, categoryProfile, examplesFor, layoutFor, type BusinessData } from './index';
+import { interpretMessage, interpretPhoto, applyOps, describeOp, toSchemaOrg, nextWeekday, weekdayOf, isValidOp, CATEGORIES, categoryProfile, examplesFor, layoutFor, type BusinessData } from './index';
 
 // Martedì 27 ottobre 2026
 const TODAY = '2026-10-27';
@@ -194,4 +194,35 @@ test('tipo di attività: sezione predefinita, titolo del catalogo e schema.org',
   assert.equal(ld.hasMenu, undefined);
   assert.equal(ld.hasOfferCatalog.itemListElement[0].itemListElement[0].itemOffered.name, 'Consulenza');
   assert.equal((toSchemaOrg(sample(), 'https://example.com') as Record<string, any>)['@type'], 'Restaurant');
+});
+
+const PHOTO = 'https://res.cloudinary.com/demo/image/upload/v1/cms/foto.jpg';
+
+test('foto con didascalia: copertina, voce nuova, voce esistente, galleria', () => {
+  assert.deepEqual(interpretPhoto('Copertina', PHOTO, sample(), TODAY).ops, [{ op: 'setCover', url: PHOTO }]);
+  const added = interpretPhoto('Aggiungi la tagliata a 18 euro nella sezione secondi', PHOTO, sample(), TODAY).ops[0] as { image: string; name: string };
+  assert.equal(added.name, 'Tagliata');
+  assert.equal(added.image, PHOTO);
+  assert.deepEqual(interpretPhoto('la carbonara', PHOTO, sample(), TODAY).ops, [{ op: 'setItemImage', itemId: 'c3', url: PHOTO }]);
+  assert.deepEqual(interpretPhoto('Galleria: la nostra sala', PHOTO, sample(), TODAY).ops, [{ op: 'addPhoto', url: PHOTO, caption: 'la nostra sala' }]);
+  assert.deepEqual(interpretPhoto('', PHOTO, sample(), TODAY).ops, [{ op: 'addPhoto', url: PHOTO, caption: '' }]);
+});
+
+test('foto: applyOps, anteprima, validità e dati salvati prima delle foto', () => {
+  const data = applyOps(sample(), [
+    { op: 'setCover', url: PHOTO },
+    { op: 'addPhoto', url: PHOTO, caption: 'Sala' },
+    { op: 'setItemImage', itemId: 'c1', url: PHOTO },
+  ], () => 'p1');
+  assert.equal(data.cover, PHOTO);
+  assert.deepEqual(data.photos, [{ id: 'p1', url: PHOTO, caption: 'Sala' }]);
+  assert.equal(data.catalog[0].image, PHOTO);
+  assert.equal(describeOp({ op: 'removePhoto', photoId: 'p1' }, data), 'Togli la foto "Sala" dalla galleria');
+  assert.equal(applyOps(data, [{ op: 'removePhoto', photoId: 'p1' }], ids).photos!.length, 0);
+  assert.equal(isValidOp({ op: 'setCover', url: 'https://evil.example/x.jpg' }), false);
+  assert.equal(isValidOp({ op: 'addPhoto', url: PHOTO, caption: 'ok' }), true);
+  // Un'attività salvata prima delle foto non ha photos: si aggiunge comunque.
+  const old = sample();
+  delete old.photos;
+  assert.equal(applyOps(old, [{ op: 'addPhoto', url: PHOTO, caption: '' }], ids).photos!.length, 1);
 });
