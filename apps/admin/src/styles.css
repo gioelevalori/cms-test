@@ -78,3 +78,9 @@ td { padding: 4px 0; }
 button:hover:not(:disabled), .button:hover { background: var(--brand-deep); }
 button.ghost:hover:not(:disabled), .button.ghost:hover { background: var(--panel-soft); }
 input:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: 0; border-color: transparent; }
+
+/* Nuova attività */
+.new-business { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; max-width: 480px; }
+.new-business h2 { margin: 0; font-size: 17px; }
+.new-business .hint { margin: 0; }
+.new-business button { align-self: flex-start; }
