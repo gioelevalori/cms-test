@@ -84,3 +84,9 @@ input:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: 0
 .new-business h2 { margin: 0; font-size: 17px; }
 .new-business .hint { margin: 0; }
 .new-business button { align-self: flex-start; }
+
+/* Tipo di attività */
+select { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: inherit; width: 100%; }
+select:focus { outline: 2px solid var(--brand); outline-offset: 0; border-color: transparent; }
+.category-pick { flex-direction: row; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+.category-pick select { width: auto; padding: 4px 8px; font-size: 13px; }

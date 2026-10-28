@@ -314,5 +314,24 @@ await step('numero già associato: Conferma lo sposta, e le modifiche vanno solo
   assert.equal((await publicSite()).data.openingHours.some((h) => h.weekday === 1), false, 'la pizzeria non cambia');
 });
 
+await step('tipo di attività: sezioni, aiuto WhatsApp e schema.org seguono il tipo', async () => {
+  assert.equal((await call('POST', '/businesses', { token: builder, body: { name: 'X', slug: `x-${Date.now()}`, category: 'astronave' } })).status, 400);
+  const slug = `studio-${Date.now()}`;
+  const studio = await call('POST', '/businesses', { token: builder, body: { name: 'Studio Rossi', slug, category: 'lawyer' } });
+  assert.equal(studio.status, 201, JSON.stringify(studio.body));
+  let site = (await call('GET', `/public/businesses/${slug}`)).body;
+  assert.equal(site.pages[0].layout.find((b) => b.type === 'catalog').options.title, 'Servizi');
+  // Il numero di prova ora aggiorna Bar Prova: collegarlo allo studio mostra gli esempi da studio legale.
+  const code = (await call('POST', '/whatsapp/link', { token: builder, body: { businessId: studio.body.id } })).body.code;
+  const ask = await send([textMsg(`COLLEGA ${code}`)]);
+  const done = await send([buttonMsg(ask.interactive.action.buttons[0].reply.id)]);
+  assert.match(done.text.body, /Studio Rossi[\s\S]*consulenza iniziale/);
+  // Il cliente non può cambiare il tipo; il costruttore sì, e la sezione cambia nome.
+  assert.equal((await call('PUT', `/businesses/${businessId}/category`, { token: client, body: { category: 'bar' } })).status, 403);
+  assert.equal((await call('PUT', `/businesses/${studio.body.id}/category`, { token: builder, body: { category: 'doctor' } })).status, 200);
+  site = (await call('GET', `/public/businesses/${slug}`)).body;
+  assert.equal(site.pages[0].layout.find((b) => b.type === 'catalog').options.title, 'Prestazioni');
+});
+
 graph.close();
 console.log(`\n${passed} controlli superati`);

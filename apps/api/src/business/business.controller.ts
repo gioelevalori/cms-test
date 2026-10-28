@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { JwtGuard } from '../auth/jwt.guard';
 import { AuthUser, CurrentUser } from '../common/current-user.decorator';
 import { BusinessService } from './business.service';
-import { CreateBusinessDto } from './business.dto';
+import { CreateBusinessDto, SetCategoryDto } from './business.dto';
 
 @Controller('businesses')
 @UseGuards(JwtGuard)
@@ -22,5 +22,10 @@ export class BusinessController {
   @Get(':businessId')
   get(@CurrentUser() u: AuthUser, @Param('businessId') businessId: string) {
     return this.businesses.get(u.id, businessId);
+  }
+
+  @Put(':businessId/category')
+  setCategory(@CurrentUser() u: AuthUser, @Param('businessId') businessId: string, @Body() dto: SetCategoryDto) {
+    return this.businesses.setCategory(u.id, businessId, dto.category);
   }
 }

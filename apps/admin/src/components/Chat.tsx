@@ -1,22 +1,15 @@
 import { FormEvent, useState } from 'react';
 import { api, ApiError, type Change, type ChatResult } from '../api/client';
 
-const EXAMPLES = [
-  'Sabato chiudiamo alle 15',
-  'Dal 10 al 20 agosto chiusi per ferie',
-  'La carbonara è finita',
-  'La margherita costa 7 euro',
-  'Aggiungi la diavola a 8 euro nella sezione pizze',
-  'Evento il 12 dicembre: serata jazz dal vivo',
-];
-
 interface Props {
   businessId: string;
+  /** Messaggi d'esempio adatti a questa attività. */
+  examples: string[];
   onApplied: () => void;
 }
 
 /** Il cuore del CMS: si scrive cosa cambia, si vede l'anteprima, si conferma. */
-export function Chat({ businessId, onApplied }: Props) {
+export function Chat({ businessId, examples, onApplied }: Props) {
   const [message, setMessage] = useState('');
   const [result, setResult] = useState<ChatResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +65,7 @@ export function Chat({ businessId, onApplied }: Props) {
 
       {!result && (
         <div className="examples">
-          {EXAMPLES.map((ex) => (
+          {examples.map((ex) => (
             <button key={ex} className="chip" type="button" onClick={() => setMessage(ex)}>{ex}</button>
           ))}
         </div>

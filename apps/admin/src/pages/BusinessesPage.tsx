@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { CATEGORIES } from '@cms/shared';
 import { api, setToken } from '../api/client';
 
 const ROLE_LABEL = { owner: 'Proprietario', builder: 'Costruttore', client: 'Cliente' };
@@ -38,6 +39,7 @@ export function BusinessesPage() {
 function NewBusiness() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
+  const [category, setCategory] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const slug = toSlug(name);
@@ -45,10 +47,11 @@ function NewBusiness() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (slug.length < 2) return setError('Scrivi il nome dell\'attività.');
+    if (!category) return setError('Scegli il tipo di attività.');
     setError(null);
     setBusy(true);
     try {
-      const b = await api.createBusiness(name.trim(), slug);
+      const b = await api.createBusiness(name.trim(), slug, category);
       navigate(`/b/${b.id}`);
     } catch (err) {
       setError((err as Error).message);
@@ -64,6 +67,14 @@ function NewBusiness() {
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Es. Bar Centrale" maxLength={120} />
       </label>
       <p className="hint">{slug ? `Il sito sarà su /${slug}` : 'Orari, menu e contatti li aggiungi dopo, scrivendo.'}</p>
+      <label>
+        Tipo di attività
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option value="" disabled>Scegli…</option>
+          {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+        </select>
+      </label>
+      <p className="hint">Serve per i messaggi d'esempio, i nomi delle sezioni del sito e come ti presenta Google.</p>
       {error && <p className="error">{error}</p>}
       <button type="submit" disabled={busy}>{busy ? 'Un attimo…' : 'Crea attività'}</button>
     </form>

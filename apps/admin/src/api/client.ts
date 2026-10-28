@@ -73,7 +73,9 @@ export const api = {
   login: (email: string, password: string) => post<{ accessToken: string }>('/auth/login', { email, password }),
   register: (name: string, email: string, password: string) => post<{ accessToken: string }>('/auth/register', { name, email, password }),
   businesses: () => request<BusinessSummary[]>('/businesses'),
-  createBusiness: (name: string, slug: string) => post<{ id: string; slug: string; name: string }>('/businesses', { name, slug }),
+  createBusiness: (name: string, slug: string, category: string) => post<{ id: string; slug: string; name: string }>('/businesses', { name, slug, category }),
+  setCategory: (id: string, category: string) =>
+    request<{ category: string }>(`/businesses/${id}/category`, { method: 'PUT', body: JSON.stringify({ category }) }),
   business: (id: string) => request<BusinessDetail>(`/businesses/${id}`),
   chat: (id: string, message: string) => post<ChatResult>(`/businesses/${id}/chat`, { message }),
   proposeOps: (id: string, ops: ChangeOp[]) => post<Change>(`/businesses/${id}/changes`, { ops }),

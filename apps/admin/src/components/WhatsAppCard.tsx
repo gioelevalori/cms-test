@@ -12,7 +12,7 @@ const LOCAL_API = /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(import.meta.env.VI
  * Niente numero da digitare: il titolare invia un codice dal suo telefono e il numero
  * da cui arriva viene collegato. Solo quel numero può poi cambiare il sito.
  */
-export function WhatsAppCard({ businessId, businessName }: { businessId: string; businessName: string }) {
+export function WhatsAppCard({ businessId, businessName, example }: { businessId: string; businessName: string; example: string }) {
   const qc = useQueryClient();
   const [link, setLink] = useState<WhatsAppLink | null>(null);
   const [qr, setQr] = useState<string | null>(null);
@@ -82,7 +82,7 @@ export function WhatsAppCard({ businessId, businessName }: { businessId: string;
         <div className="wa-linked">
           <p className="wa-status"><span className="wa-dot" aria-hidden="true" />Collegato: <strong>{formatNumber(me.data!.whatsapp!)}</strong></p>
           <p>
-            Da questo numero aggiorni il sito di {businessName} scrivendo all'assistente, ad esempio “Sabato chiudiamo alle 15”.
+            Da questo numero aggiorni il sito di {businessName} scrivendo all'assistente, ad esempio “{example}”.
             Ricevi l'anteprima e confermi con un tocco. Messaggi da altri numeri vengono ignorati.
           </p>
           <button className="ghost small" onClick={unlink} disabled={busy}>Scollega</button>

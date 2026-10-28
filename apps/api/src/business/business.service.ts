@@ -1,5 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { DEFAULT_LAYOUT } from '@cms/shared';
+import { categoryProfile, isValidLayout, layoutFor } from '@cms/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { BusinessDataService } from './business-data.service';
 import { MembershipService } from './membership.service';
@@ -34,11 +34,33 @@ export class BusinessService {
       data: {
         name: dto.name,
         slug: dto.slug,
-        category: dto.category ?? '',
+        category: dto.category ?? 'other',
         memberships: { create: { userId, role: 'owner' } },
-        pages: { create: { slug: 'home', title: 'Home', layout: DEFAULT_LAYOUT as object[] } },
+        pages: { create: { slug: 'home', title: 'Home', layout: layoutFor(dto.category ?? 'other') as object[] } },
       },
       select: { id: true, slug: true, name: true },
     });
+  }
+
+  /**
+   * Cambia il tipo di attività (solo costruttore). Se la sezione con voci e prezzi ha ancora
+   * il titolo predefinito del vecchio tipo, prende quello del nuovo ("Menu" → "Servizi").
+   */
+  async setCategory(userId: string, businessId: string, category: string) {
+    await this.membership.requireStructureRole(userId, businessId);
+    const before = await this.prisma.business.findUniqueOrThrow({ where: { id: businessId }, select: { category: true } });
+    const oldTitle = categoryProfile(before.category).catalogTitle;
+    const newTitle = categoryProfile(category).catalogTitle;
+    await this.prisma.$transaction(async (db) => {
+      await db.business.update({ where: { id: businessId }, data: { category } });
+      for (const page of await db.page.findMany({ where: { businessId } })) {
+        if (!isValidLayout(page.layout)) continue;
+        const layout = page.layout.map((b) =>
+          b.type === 'catalog' && (b.options.title === oldTitle || b.options.title === 'Menu') ? { ...b, options: { ...b.options, title: newTitle } } : b,
+        );
+        await db.page.update({ where: { id: page.id }, data: { layout: layout as object[] } });
+      }
+    });
+    return { category };
   }
 }

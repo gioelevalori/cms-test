@@ -1,4 +1,4 @@
-import { WEEKDAY_NAMES, addDays, formatDateIt, todayIn, weekdayOf, type BusinessData, type PageBlock, type Weekday } from '@cms/shared';
+import { WEEKDAY_NAMES, addDays, categoryProfile, formatDateIt, todayIn, weekdayOf, type BusinessData, type PageBlock, type Weekday } from '@cms/shared';
 
 const euro = (n: number | null) => (n === null ? '' : `${n.toFixed(2).replace('.', ',')} €`);
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as Weekday[];
@@ -51,6 +51,7 @@ function Hours({ data, title, timezone }: { data: BusinessData; title: string; t
 function Catalog({ data, title }: { data: BusinessData; title: string }) {
   if (data.catalog.length === 0) return null;
   const sections = [...new Set(data.catalog.map((i) => i.section))];
+  const soldOut = categoryProfile(data.category).catalogKind === 'menu' ? 'Esaurito' : 'Non disponibile';
   return (
     <section className="block" id="menu">
       <h2>{title}</h2>
@@ -64,7 +65,7 @@ function Catalog({ data, title }: { data: BusinessData; title: string }) {
                   <span className="name">{i.name}</span>
                   {i.description && <span className="desc">{i.description}</span>}
                 </div>
-                <span className="price">{i.available ? euro(i.price) : 'Esaurito'}</span>
+                <span className="price">{i.available ? euro(i.price) : soldOut}</span>
               </li>
             ))}
           </ul>
@@ -91,6 +92,7 @@ function Posts({ data, limit }: { data: BusinessData; limit: number }) {
 }
 
 export function Blocks({ layout, data, timezone }: { layout: PageBlock[]; data: BusinessData; timezone: string }) {
+  const profile = categoryProfile(data.category);
   return (
     <>
       {layout.map((block) => {
@@ -101,7 +103,7 @@ export function Blocks({ layout, data, timezone }: { layout: PageBlock[]; data: 
               <header key={block.id} className="hero">
                 <h1>{data.name}</h1>
                 {block.options.subtitle ? <p>{String(block.options.subtitle)}</p> : <p>{todayStatus(data, todayIn(timezone))}</p>}
-                <a className="cta" href="#menu">Guarda il menu</a>
+                {data.catalog.length > 0 && <a className="cta" href="#menu">{profile.catalogCta}</a>}
               </header>
             );
           case 'about':
@@ -111,7 +113,7 @@ export function Blocks({ layout, data, timezone }: { layout: PageBlock[]; data: 
           case 'hours':
             return <Hours key={block.id} data={data} title={title || 'Orari'} timezone={timezone} />;
           case 'catalog':
-            return <Catalog key={block.id} data={data} title={title || 'Menu'} />;
+            return <Catalog key={block.id} data={data} title={title || profile.catalogTitle} />;
           case 'posts':
             return <Posts key={block.id} data={data} limit={Number(block.options.limit ?? 3)} />;
           case 'contacts':

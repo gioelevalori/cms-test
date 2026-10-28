@@ -1,3 +1,5 @@
+import { categoryProfile } from './categories';
+
 /**
  * Le pagine contengono blocchi che LEGGONO i dati dell'attività, non li copiano.
  * Il layout lo decide il costruttore (owner/builder); il cliente cambia solo i dati.
@@ -33,3 +35,9 @@ export const DEFAULT_LAYOUT: PageBlock[] = [
   { id: 'about', type: 'about', options: { title: 'Chi siamo' } },
   { id: 'contacts', type: 'contacts', options: { title: 'Contatti' } },
 ];
+
+/** Layout iniziale di una nuova attività: la sezione con voci e prezzi prende il nome giusto per il suo tipo. */
+export function layoutFor(category: string): PageBlock[] {
+  const title = categoryProfile(category).catalogTitle;
+  return DEFAULT_LAYOUT.map((b) => (b.type === 'catalog' ? { ...b, options: { ...b.options, title } } : { ...b, options: { ...b.options } }));
+}

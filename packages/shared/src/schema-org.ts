@@ -1,4 +1,5 @@
-import type { BusinessData } from './types';
+import type { BusinessData, CatalogItem } from './types';
+import { categoryProfile } from './categories';
 
 const DAY_URI: Record<number, string> = {
   1: 'https://schema.org/Monday',
@@ -28,28 +29,45 @@ export function toSchemaOrg(data: BusinessData, url: string): Record<string, unk
     })),
   ];
 
+  const profile = categoryProfile(data.category);
   const sections = [...new Set(data.catalog.map((i) => i.section))];
-  const menu = data.catalog.length
+  const offer = (i: CatalogItem) => (i.price !== null ? { '@type': 'Offer', price: i.price.toFixed(2), priceCurrency: 'EUR' } : undefined);
+  const available = (section: string) => data.catalog.filter((i) => i.section === section && i.available);
+
+  // Chi serve cibo e bevande ha un menu; gli altri un catalogo di prodotti e servizi.
+  const menu = data.catalog.length && profile.catalogKind === 'menu'
     ? {
         '@type': 'Menu',
         hasMenuSection: sections.map((section) => ({
           '@type': 'MenuSection',
           name: section,
-          hasMenuItem: data.catalog
-            .filter((i) => i.section === section && i.available)
-            .map((i) => ({
-              '@type': 'MenuItem',
-              name: i.name,
-              description: i.description || undefined,
-              offers: i.price !== null ? { '@type': 'Offer', price: i.price.toFixed(2), priceCurrency: 'EUR' } : undefined,
-            })),
+          hasMenuItem: available(section).map((i) => ({
+            '@type': 'MenuItem',
+            name: i.name,
+            description: i.description || undefined,
+            offers: offer(i),
+          })),
+        })),
+      }
+    : undefined;
+  const offerCatalog = data.catalog.length && profile.catalogKind === 'offers'
+    ? {
+        '@type': 'OfferCatalog',
+        name: profile.catalogTitle,
+        itemListElement: sections.map((section) => ({
+          '@type': 'OfferCatalog',
+          name: section,
+          itemListElement: available(section).map((i) => ({
+            ...(offer(i) ?? { '@type': 'Offer' }),
+            itemOffered: { '@type': profile.id === 'shop' ? 'Product' : 'Service', name: i.name, description: i.description || undefined },
+          })),
         })),
       }
     : undefined;
 
   return {
     '@context': 'https://schema.org',
-    '@type': data.category === 'restaurant' ? 'Restaurant' : 'LocalBusiness',
+    '@type': profile.schemaType,
     name: data.name,
     description: data.description || undefined,
     url,
@@ -58,5 +76,6 @@ export function toSchemaOrg(data: BusinessData, url: string): Record<string, unk
     address: data.address || undefined,
     openingHoursSpecification,
     hasMenu: menu,
+    hasOfferCatalog: offerCatalog,
   };
 }

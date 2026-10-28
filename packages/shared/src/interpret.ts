@@ -1,6 +1,7 @@
 import type { BusinessData, CatalogItem, IsoDate, Time, TimeSlot, Weekday } from './types';
 import { isPossibleSlot, type ChangeOp } from './operations';
 import { addDays, dateRange, nextWeekday, upcomingDate } from './dates';
+import { categoryProfile } from './categories';
 
 /**
  * Interprete a regole dei messaggi in italiano.
@@ -265,7 +266,7 @@ function interpretCatalog(text: string, original: string, data: BusinessData): C
       .replace(ARTICLES, '')
       .trim();
     if (!rest) return null;
-    const lastSection = data.catalog.at(-1)?.section ?? 'Menu';
+    const lastSection = data.catalog.at(-1)?.section ?? categoryProfile(data.category).defaultSection;
     return [{ op: 'addCatalogItem', section: section ?? lastSection, name: capitalize(rest), description, price }];
   }
 

@@ -1,5 +1,6 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { categoryProfile } from '@cms/shared';
 import { ChangesService } from '../changes/changes.service';
 import type { WhatsAppClient } from './whatsapp.client';
 import { LINK_MESSAGE } from './whatsapp-link.controller';
@@ -13,16 +14,15 @@ export interface InboundWhatsApp {
 }
 type Replies = Pick<WhatsAppClient, 'sendText' | 'sendButtons'>;
 
-const HELP = [
-  'Scrivimi cosa cambia, come lo diresti a un collaboratore. Per esempio:',
-  '• Sabato chiudiamo alle 15',
-  '• Dal 10 al 20 agosto chiusi per ferie',
-  '• La carbonara è finita',
-  '• La margherita costa 7 euro',
-  '• Evento il 12 dicembre: serata jazz',
-  '',
-  'Ti mostro sempre l’anteprima prima di cambiare il sito. Scrivi "annulla" per annullare l’ultima modifica.',
-].join('\n');
+/** Istruzioni con esempi adatti al tipo di attività (bar, studio legale, palestra…). */
+function help(category = ''): string {
+  return [
+    'Scrivimi cosa cambia, come lo diresti a un collaboratore. Per esempio:',
+    ...categoryProfile(category).examples.map((e) => `• ${e}`),
+    '',
+    'Ti mostro sempre l’anteprima prima di cambiare il sito. Scrivi "annulla" per annullare l’ultima modifica.',
+  ].join('\n');
+}
 
 const YES = /^(si|sì|ok|okay|confermo|conferma|va bene|vai)[.! ]*$/i;
 const NO = /^(no|scarta|lascia stare|niente)[.! ]*$/i;
@@ -49,7 +49,7 @@ export class WhatsAppService {
 
     const user = await db.user.findUnique({
       where: { whatsapp: msg.from },
-      include: { memberships: { include: { business: { select: { id: true, name: true } } } } },
+      include: { memberships: { include: { business: { select: { id: true, name: true, category: true } } } } },
     });
     // Solo un numero collegato può cambiare un sito, e cambia l'attività scelta quando l'ha collegato.
     const membership = user?.memberships.find((m) => m.businessId === user.whatsappBusinessId) ?? user?.memberships[0];
@@ -67,14 +67,15 @@ export class WhatsAppService {
     try {
       if (msg.buttonId) return await this.handleButton(db, reply, user.id, msg.from, msg.buttonId);
       const text = (msg.text ?? '').trim();
-      if (!text) return await reply.sendText(msg.from, 'Per ora capisco solo messaggi di testo.\n\n' + HELP);
-      if (HELP_RE.test(text)) return await reply.sendText(msg.from, `Ciao! Qui aggiorni il sito di ${membership.business.name}.\n\n${HELP}`);
+      const helpText = help(membership.business.category);
+      if (!text) return await reply.sendText(msg.from, 'Per ora capisco solo messaggi di testo.\n\n' + helpText);
+      if (HELP_RE.test(text)) return await reply.sendText(msg.from, `Ciao! Qui aggiorni il sito di ${membership.business.name}.\n\n${helpText}`);
       if (YES.test(text) || NO.test(text)) return await this.answerPending(db, reply, user.id, msg.from, businessId, YES.test(text));
       if (UNDO.test(text)) return await this.undoLast(db, reply, user.id, msg.from, businessId);
 
       const result = await this.changes.proposeFromMessage(user.id, businessId, text, db);
       if (!('id' in result)) {
-        return await reply.sendText(msg.from, `Non ho capito il messaggio.\n\n${HELP}`);
+        return await reply.sendText(msg.from, `Non ho capito il messaggio.\n\n${helpText}`);
       }
       const lines = result.summary.map((s: string) => `• ${s}`).join('\n');
       const unclear = result.unrecognized.length ? `\n\nNon ho capito: “${result.unrecognized.join('”, “')}”` : '';
@@ -96,7 +97,7 @@ export class WhatsAppService {
   private async linkNumber(db: Prisma.TransactionClient, reply: Replies, from: string, code: string) {
     const link = await this.validLink(db, reply, from, code);
     if (!link) return;
-    const target = await db.business.findUnique({ where: { id: link.businessId }, select: { name: true } });
+    const target = await db.business.findUnique({ where: { id: link.businessId }, select: { name: true, category: true } });
     const current = await this.currentBusiness(db, from);
     if (current && current.id !== link.businessId) {
       this.logger.log(`Numero ...${from.slice(-4)} già collegato a un'altra attività: chiedo conferma`);
@@ -110,7 +111,7 @@ export class WhatsAppService {
       );
       return;
     }
-    await this.applyLink(db, reply, from, link, target?.name);
+    await this.applyLink(db, reply, from, link, target);
   }
 
   /** Risposta ai pulsanti "dissociarlo e associarlo a…". */
@@ -122,8 +123,8 @@ export class WhatsAppService {
     }
     const link = await this.validLink(db, reply, from, code);
     if (!link) return;
-    const target = await db.business.findUnique({ where: { id: link.businessId }, select: { name: true } });
-    await this.applyLink(db, reply, from, link, target?.name);
+    const target = await db.business.findUnique({ where: { id: link.businessId }, select: { name: true, category: true } });
+    await this.applyLink(db, reply, from, link, target);
   }
 
   /** Il codice esiste e non è scaduto; altrimenti spiega cosa fare. */
@@ -143,21 +144,21 @@ export class WhatsAppService {
   private async currentBusiness(db: Prisma.TransactionClient, from: string) {
     const user = await db.user.findUnique({
       where: { whatsapp: from },
-      include: { memberships: { include: { business: { select: { id: true, name: true } } } } },
+      include: { memberships: { include: { business: { select: { id: true, name: true, category: true } } } } },
     });
     const membership = user?.memberships.find((m) => m.businessId === user.whatsappBusinessId) ?? user?.memberships[0];
     return membership?.business ?? null;
   }
 
   /** Il codice dimostra che il telefono è del titolare: il numero lascia l'eventuale altro account e passa a questo. */
-  private async applyLink(db: Prisma.TransactionClient, reply: Replies, from: string, link: { userId: string; businessId: string }, name?: string) {
+  private async applyLink(db: Prisma.TransactionClient, reply: Replies, from: string, link: { userId: string; businessId: string }, target: { name: string; category: string } | null) {
     await db.user.updateMany({ where: { whatsapp: from, id: { not: link.userId } }, data: { whatsapp: null, whatsappBusinessId: null } });
     await db.user.update({ where: { id: link.userId }, data: { whatsapp: from, whatsappBusinessId: link.businessId } });
     await db.whatsAppLink.deleteMany({ where: { userId: link.userId } });
     this.logger.log(`Numero ...${from.slice(-4)} collegato`);
     await reply.sendText(
       from,
-      `Fatto! Da questo numero ora aggiorni il sito di ${name ?? 'la tua attività'}. Solo tu puoi farlo: gli altri numeri vengono ignorati.\n\n${HELP}`,
+      `Fatto! Da questo numero ora aggiorni il sito di ${target?.name ?? 'la tua attività'}. Solo tu puoi farlo: gli altri numeri vengono ignorati.\n\n${help(target?.category)}`,
     );
   }
 

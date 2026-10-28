@@ -1,4 +1,4 @@
-import { WEEKDAY_NAMES, formatDateIt, type BusinessData as Data, type ChangeOp, type Weekday } from '@cms/shared';
+import { WEEKDAY_NAMES, categoryProfile, formatDateIt, type BusinessData as Data, type ChangeOp, type Weekday } from '@cms/shared';
 
 interface Props {
   data: Data;
@@ -49,7 +49,7 @@ export function BusinessDataView({ data, onOps, busy }: Props) {
       </section>
 
       <section className="card">
-        <h2>Menu e listino</h2>
+        <h2>{categoryProfile(data.category).catalogTitle}</h2>
         {sections.map((section) => (
           <div key={section}>
             <h3>{section}</h3>

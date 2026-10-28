@@ -4,3 +4,4 @@ export * from './operations';
 export * from './interpret';
 export * from './schema-org';
 export * from './layout';
+export * from './categories';

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretMessage, applyOps, describeOp, toSchemaOrg, nextWeekday, weekdayOf, isValidOp, type BusinessData } from './index';
+import { interpretMessage, applyOps, describeOp, toSchemaOrg, nextWeekday, weekdayOf, isValidOp, CATEGORIES, categoryProfile, examplesFor, layoutFor, type BusinessData } from './index';
 
 // Martedì 27 ottobre 2026
 const TODAY = '2026-10-27';
@@ -161,4 +161,37 @@ test('schema.org con orari e menu', () => {
   const s = toSchemaOrg(sample(), 'https://example.com') as { '@type': string; openingHoursSpecification: unknown[] };
   assert.equal(s['@type'], 'Restaurant');
   assert.equal(s.openingHoursSpecification.length, 3);
+});
+
+test("ogni esempio di ogni tipo di attività viene capito, anche su un'attività appena creata", () => {
+  for (const c of CATEGORIES) {
+    const empty: BusinessData = { ...sample(), category: c.id, openingHours: [], catalog: [] };
+    for (const msg of examplesFor(empty)) {
+      const r = interpretMessage(msg, empty, TODAY);
+      assert.deepEqual(r.unrecognized, [], `${c.id}: "${msg}"`);
+      assert.ok(r.ops.length > 0, `${c.id}: "${msg}"`);
+    }
+    const full: BusinessData = { ...sample(), category: c.id };
+    for (const msg of examplesFor(full)) assert.deepEqual(interpretMessage(msg, full, TODAY).unrecognized, [], `${c.id}: "${msg}"`);
+  }
+});
+
+test("esempi personalizzati con una voce vera dell'attività", () => {
+  const ex = examplesFor(sample());
+  assert.ok(ex.includes('Margherita costa 7 euro'));
+  assert.deepEqual(interpretMessage('Margherita non disponibile', sample(), TODAY).ops, [{ op: 'setItemAvailability', itemId: 'c1', available: false }]);
+});
+
+test('tipo di attività: sezione predefinita, titolo del catalogo e schema.org', () => {
+  const lawyer: BusinessData = { ...sample(), category: 'lawyer', catalog: [] };
+  const op = interpretMessage('Aggiungi consulenza a 60 euro', lawyer, TODAY).ops[0] as { section: string };
+  assert.equal(op.section, 'Servizi');
+  assert.equal(layoutFor('doctor').find((b) => b.type === 'catalog')!.options.title, 'Prestazioni');
+  assert.equal(categoryProfile('sconosciuto').id, 'other');
+  const data = applyOps({ ...lawyer }, interpretMessage('Aggiungi consulenza a 60 euro', lawyer, TODAY).ops, () => 'x1');
+  const ld = toSchemaOrg(data, 'https://example.com') as Record<string, any>;
+  assert.equal(ld['@type'], 'Attorney');
+  assert.equal(ld.hasMenu, undefined);
+  assert.equal(ld.hasOfferCatalog.itemListElement[0].itemListElement[0].itemOffered.name, 'Consulenza');
+  assert.equal((toSchemaOrg(sample(), 'https://example.com') as Record<string, any>)['@type'], 'Restaurant');
 });

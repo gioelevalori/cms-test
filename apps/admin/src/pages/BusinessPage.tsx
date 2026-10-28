@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { canEditStructure, type ChangeOp, type PageBlock } from '@cms/shared';
+import { CATEGORIES, canEditStructure, examplesFor, type ChangeOp, type PageBlock } from '@cms/shared';
 import { api, SITE_URL, type Change } from '../api/client';
 import { Chat } from '../components/Chat';
 import { BusinessDataView } from '../components/BusinessData';
@@ -45,6 +45,11 @@ export function BusinessPage() {
       await api.savePage(businessId, 'home', layout);
       qc.invalidateQueries({ queryKey: ['pages', businessId] });
     });
+  const setCategory = (category: string) =>
+    run(async () => {
+      await api.setCategory(businessId, category);
+      qc.invalidateQueries({ queryKey: ['pages', businessId] });
+    });
 
   if (business.isLoading) return <p className="container">Caricamento…</p>;
   if (business.error) return <p className="container error">{(business.error as Error).message}</p>;
@@ -56,6 +61,14 @@ export function BusinessPage() {
         <div>
           <Link to="/">← Attività</Link>
           <h1>{b.data.name}</h1>
+          {isBuilder && (
+            <label className="category-pick">
+              Tipo di attività
+              <select value={b.data.category || 'other'} onChange={(e) => setCategory(e.target.value)} disabled={busy}>
+                {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </label>
+          )}
         </div>
         <a className="button ghost" href={`${SITE_URL}/${b.slug}`} target="_blank" rel="noreferrer">Vedi il sito ↗</a>
       </header>
@@ -63,8 +76,8 @@ export function BusinessPage() {
 
       <div className="grid">
         <div className="col">
-          <Chat businessId={businessId} onApplied={refresh} />
-          <WhatsAppCard businessId={businessId} businessName={b.data.name} />
+          <Chat businessId={businessId} examples={examplesFor(b.data)} onApplied={refresh} />
+          <WhatsAppCard businessId={businessId} businessName={b.data.name} example={examplesFor(b.data)[0]} />
           <History changes={changes.data ?? []} onUndo={undo} busy={busy} />
           {isBuilder && pages.data?.[0] && <LayoutEditor page={pages.data[0]} onSave={saveLayout} busy={busy} />}
         </div>
