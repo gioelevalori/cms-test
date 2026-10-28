@@ -1,5 +1,5 @@
 import type { BusinessData, CatalogItem, IsoDate, Time, TimeSlot, Weekday } from './types';
-import type { ChangeOp } from './operations';
+import { isPossibleSlot, type ChangeOp } from './operations';
 import { addDays, dateRange, nextWeekday, upcomingDate } from './dates';
 
 /**
@@ -139,6 +139,29 @@ function regularDay(data: BusinessData, weekday: Weekday): { opens: Time | null;
   };
 }
 
+/** Una chiusura fino alle 6 di mattina è dopo mezzanotte (es. 19:00–02:00). */
+const isAfterMidnight = (t: Time) => t <= '06:00';
+
+/**
+ * Applica "apriamo alle X" / "chiudiamo alle Y" alle fasce abituali del giorno:
+ * chiudere alle 15 con 12–14:30 e 19–23:30 lascia 12–15. Null se l'orario contraddice
+ * il giorno (es. chiudere alle 18 quando si apre alle 19).
+ */
+function adjustSlots(regular: TimeSlot[], open: Time | null, close: Time | null): TimeSlot[] | null {
+  let slots = regular.map((s) => ({ ...s }));
+  if (close) {
+    if (!isAfterMidnight(close)) slots = slots.filter((s) => s.opens < close);
+    if (!slots.length) return null;
+    slots[slots.length - 1].closes = close;
+  }
+  if (open) {
+    slots = slots.filter((s) => isAfterMidnight(s.closes) || s.closes > open);
+    if (!slots.length) return null;
+    slots[0].opens = open;
+  }
+  return slots.every((s) => isPossibleSlot(s.opens, s.closes)) ? slots : null;
+}
+
 function interpretHours(text: string, original: string, data: BusinessData, today: IsoDate): ChangeOp[] | null {
   const t = wordTimes(text);
   const target = findDays(t, today);
@@ -156,9 +179,8 @@ function interpretHours(text: string, original: string, data: BusinessData, toda
     if (open || close) {
       const regular = regularDay(data, target.weekday).slots;
       if (!regular.length && !(open && close)) return null;
-      const slots = regular.length ? regular.map((s) => ({ ...s })) : [{ opens: open!, closes: close! }];
-      if (open) slots[0].opens = open;
-      if (close) slots[slots.length - 1].closes = close;
+      const slots = regular.length ? adjustSlots(regular, open, close) : [{ opens: open!, closes: close! }];
+      if (!slots || !slots.every((s) => isPossibleSlot(s.opens, s.closes))) return null;
       return [{ op: 'setWeeklyHours', weekday: target.weekday, slots }];
     }
     return null;
@@ -171,13 +193,22 @@ function interpretHours(text: string, original: string, data: BusinessData, toda
   }
   if (!hasTimes) return null;
 
-  return target.dates.map((date) => {
+  const ops: ChangeOp[] = [];
+  for (const date of target.dates) {
     const weekday = new Date(`${date}T12:00:00Z`).getUTCDay() || 7;
     const regular = regularDay(data, weekday as Weekday);
-    const opens = ranges[0]?.opens ?? open ?? regular.opens;
-    const closes = ranges[0]?.closes ?? close ?? regular.closes;
-    return { op: 'setSpecialHours' as const, date, closed: false, opens, closes, note };
-  });
+    let opens = ranges[0]?.opens ?? open ?? regular.opens;
+    let closes = ranges[0]?.closes ?? close ?? regular.closes;
+    if (!ranges.length && regular.slots.length) {
+      const slots = adjustSlots(regular.slots, open, close);
+      if (!slots) return null;
+      opens = slots[0].opens;
+      closes = slots[slots.length - 1].closes;
+    }
+    if (opens && closes && !isPossibleSlot(opens, closes)) return null;
+    ops.push({ op: 'setSpecialHours', date, closed: false, opens, closes, note });
+  }
+  return ops;
 }
 
 // ---------- catalogo ----------

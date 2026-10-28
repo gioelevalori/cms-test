@@ -23,8 +23,8 @@ Lingua dell'utente e dell'interfaccia: italiano.
 - Demo: https://gioelevalori.github.io/cms-test/
 - DB Render free: scade il 2026-11-26.
 
-## WhatsApp — stato al 2026-10-28 (da completare)
-- Env su Render API: WHATSAPP_PHONE_NUMBER_ID (numero di test +1 555 181 5223), WHATSAPP_TOKEN (temporaneo 24h → sostituire con token permanente/utente di sistema), WHATSAPP_APP_SECRET, WHATSAPP_VERIFY_TOKEN (cambiato il 28/10), WHATSAPP_API_VERSION=v26.0.
-- Funziona: webhook "Test" dalla dashboard Meta arriva e la firma è valida. App Meta "Messaggi" pubblicata. WABA 1593822615767138 iscritta all'app (subscribed_apps).
-- Non funziona ancora: i messaggi reali non arrivano. `GET {phone_number_id}?fields=webhook_configuration` non restituisce URL; `override_callback_uri` fallisce con "(#100) Before override the current callback uri, your app must be subscribed…".
-- Prossimo passo: su Meta → WhatsApp → Configurazione, rifare "Verifica e salva" del webhook con il nuovo WHATSAPP_VERIFY_TOKEN (valore nelle env di Render), certificato client OFF, campo `messages` iscritto (off/on); poi ricontrollare `webhook_configuration` e rimandare "Sabato chiudiamo alle 15". Diagnosi via log app su Render (messaggi "Webhook ricevuto", "Verifica webhook…", "Invio WhatsApp fallito").
+## WhatsApp — stato al 2026-10-28 (funziona con il numero di test)
+- Env su Render API: WHATSAPP_PHONE_NUMBER_ID (1432024326656829, numero di test +1 555 181 5223), WHATSAPP_TOKEN (temporaneo 24h → sostituire con token permanente/utente di sistema), WHATSAPP_APP_SECRET, WHATSAPP_VERIFY_TOKEN, WHATSAPP_API_VERSION=v26.0.
+- App Meta giusta: "Messaggi" ID 1570687451411867 (webhook verso l'API Render, campo `messages` iscritto). Esiste una seconda app omonima (1095259659924870) senza webhook: era l'unica iscritta alla WABA ed era il motivo per cui i messaggi reali non arrivavano.
+- Risolto il 28/10: `POST 1593822615767138/subscribed_apps` dal Graph Explorer dell'app 1570687451411867. Messaggio reale ricevuto e risposta inviata.
+- Da fare: token permanente (utente di sistema, permessi whatsapp_business_messaging + whatsapp_business_management) in WHATSAPP_TOKEN su Render; numero vero al posto di quello di test; eliminare o rinominare l'app doppione. Diagnosi via log app su Render ("Webhook ricevuto", "Messaggio da", "Invio WhatsApp fallito").

@@ -71,6 +71,27 @@ test('settimanale con solo chiusura modifica l\'ultima fascia', () => {
   assert.deepEqual(r.ops, [{ op: 'setWeeklyHours', weekday: 6, slots: [{ opens: '12:00', closes: '14:30' }, { opens: '19:00', closes: '23:00' }] }]);
 });
 
+test('chiusura prima dell\'apertura: non capito invece di 19:00–18:00', () => {
+  // Il martedì si apre alle 19
+  for (const msg of ['Martedì chiudiamo alle 18', 'il martedì chiudiamo alle 18', 'martedì apriamo alle 23:45']) {
+    const r = interpretMessage(msg, sample(), TODAY);
+    assert.deepEqual(r.ops, [], msg);
+    assert.deepEqual(r.unrecognized, [msg]);
+  }
+});
+
+test('chiusura a metà giornata toglie le fasce successive; dopo mezzanotte allunga', () => {
+  assert.deepEqual(interpretMessage('il sabato chiudiamo alle 15', sample(), TODAY).ops, [
+    { op: 'setWeeklyHours', weekday: 6, slots: [{ opens: '12:00', closes: '15:00' }] },
+  ]);
+  assert.deepEqual(interpretMessage('sabato apriamo alle 18', sample(), TODAY).ops, [
+    { op: 'setSpecialHours', date: '2026-10-31', closed: false, opens: '18:00', closes: '23:30', note: null },
+  ]);
+  assert.deepEqual(interpretMessage('stasera chiudiamo alle 2', sample(), TODAY).ops, [
+    { op: 'setSpecialHours', date: TODAY, closed: false, opens: '19:00', closes: '02:00', note: null },
+  ]);
+});
+
 test('torna l\'orario normale', () => {
   assert.deepEqual(interpretMessage('sabato orario normale', sample(), TODAY).ops, [{ op: 'removeSpecialHours', date: '2026-10-31' }]);
 });
@@ -122,6 +143,11 @@ test('describeOp in italiano', () => {
   const data = sample();
   assert.equal(describeOp({ op: 'setItemPrice', itemId: 'c1', price: 7 }, data), 'Margherita: nuovo prezzo 7,00 €');
   assert.equal(describeOp({ op: 'setSpecialHours', date: '2026-10-31', closed: true, opens: null, closes: null, note: null }, data), '31 ottobre 2026: chiuso');
+});
+
+test('isValidOp rifiuta fasce impossibili ma accetta quelle dopo mezzanotte', () => {
+  assert.equal(isValidOp({ op: 'setSpecialHours', date: TODAY, closed: false, opens: '19:00', closes: '18:00', note: null }), false);
+  assert.equal(isValidOp({ op: 'setWeeklyHours', weekday: 5, slots: [{ opens: '19:00', closes: '02:00' }] }), true);
 });
 
 test('isValidOp rifiuta operazioni malformate', () => {

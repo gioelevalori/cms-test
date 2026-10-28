@@ -26,6 +26,9 @@ const POST_KINDS = ['news', 'event', 'offer'];
 
 const isTime = (v: unknown): v is Time => typeof v === 'string' && TIME_RE.test(v);
 const isTimeOrNull = (v: unknown) => v === null || isTime(v);
+
+/** Una fascia oraria possibile: chiude dopo l'apertura, o dopo mezzanotte entro le 6 (es. 19:00–02:00). */
+export const isPossibleSlot = (opens: Time, closes: Time) => opens !== closes && (opens < closes || closes <= '06:00');
 const isDate = (v: unknown): v is IsoDate => typeof v === 'string' && DATE_RE.test(v);
 const isDateOrNull = (v: unknown) => v === null || isDate(v);
 const isStr = (v: unknown, max = 2000): v is string => typeof v === 'string' && v.length <= max;
@@ -37,9 +40,10 @@ export function isValidOp(value: unknown): value is ChangeOp {
   switch (o.op) {
     case 'setWeeklyHours':
       return Number.isInteger(o.weekday) && (o.weekday as number) >= 1 && (o.weekday as number) <= 7 &&
-        Array.isArray(o.slots) && o.slots.every((s: Record<string, unknown>) => isTime(s?.opens) && isTime(s?.closes));
+        Array.isArray(o.slots) && o.slots.every((s: Record<string, unknown>) => isTime(s?.opens) && isTime(s?.closes) && isPossibleSlot(s.opens, s.closes));
     case 'setSpecialHours':
-      return isDate(o.date) && typeof o.closed === 'boolean' && isTimeOrNull(o.opens) && isTimeOrNull(o.closes) && (o.note === null || isStr(o.note, 200));
+      return isDate(o.date) && typeof o.closed === 'boolean' && isTimeOrNull(o.opens) && isTimeOrNull(o.closes) &&
+        !(isTime(o.opens) && isTime(o.closes) && !isPossibleSlot(o.opens, o.closes)) && (o.note === null || isStr(o.note, 200));
     case 'removeSpecialHours':
       return isDate(o.date);
     case 'addCatalogItem':
