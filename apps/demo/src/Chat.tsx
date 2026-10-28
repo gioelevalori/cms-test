@@ -2,17 +2,6 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import type { ChangeOp } from '@cms/shared';
 import type { HistoryEntry } from './storage';
 
-const EXAMPLES = [
-  'Sabato chiudiamo alle 15',
-  'La carbonara è finita',
-  'La margherita costa 7 euro',
-  'Aggiungi la diavola a 8 euro nella sezione pizze',
-  'Evento il 12 dicembre: serata jazz dal vivo',
-  'Domani siamo chiusi per inventario',
-  'Dal 10 al 20 agosto chiusi per ferie',
-  'Il lunedì siamo chiusi',
-];
-
 export interface Pending {
   message: string;
   ops: ChangeOp[];
@@ -22,6 +11,8 @@ export interface Pending {
 
 interface Props {
   businessName: string;
+  accent: string;
+  examples: string[];
   history: HistoryEntry[];
   pending: Pending | null;
   onSend: (text: string) => void;
@@ -49,7 +40,7 @@ function Ticks() {
 }
 
 /** Conversazione WhatsApp simulata: stessa sequenza del bot reale (anteprima → Conferma / Annulla). */
-export function Chat({ businessName, history, pending, onSend, onConfirm, onCancel, onUndo }: Props) {
+export function Chat({ businessName, accent, examples, history, pending, onSend, onConfirm, onCancel, onUndo }: Props) {
   const [text, setText] = useState('');
   const logRef = useRef<HTMLOListElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -84,12 +75,12 @@ export function Chat({ businessName, history, pending, onSend, onConfirm, onCanc
   const past = [...history].reverse();
 
   return (
-    <section className="phone" aria-label="Chat WhatsApp simulata">
+    <section className="chat" aria-label={`Chat con l'assistente del sito di ${businessName}`}>
       <div className="wa-head">
-        <span className="wa-avatar" aria-hidden="true">{businessName.charAt(0)}</span>
+        <span className="avatar" style={{ background: accent }} aria-hidden="true">{businessName.charAt(0)}</span>
         <div>
           <p className="wa-name">{businessName}</p>
-          <p className="wa-sub">assistente del sito · demo</p>
+          <p className="wa-sub">Assistente del sito · scrivi come su WhatsApp</p>
         </div>
       </div>
 
@@ -102,7 +93,7 @@ export function Chat({ businessName, history, pending, onSend, onConfirm, onCanc
           <li className="bubble in wa-starters">
             Per provare, tocca una frase:
             <div className="wa-starter-list">
-              {EXAMPLES.map((ex) => (
+              {examples.map((ex) => (
                 <button key={ex} className="wa-starter" onClick={() => pick(ex)}>{ex}</button>
               ))}
             </div>
@@ -139,7 +130,7 @@ export function Chat({ businessName, history, pending, onSend, onConfirm, onCanc
               </div>
             ) : (
               <div className="bubble in">
-                Non ho capito cosa cambiare. Prova a scrivere giorno e orario, oppure il piatto e il prezzo, come negli esempi qui sotto.
+                Non ho capito cosa cambiare. Prova a scrivere giorno e orario, oppure la voce e il prezzo, come negli esempi qui sotto.
               </div>
             )}
           </li>
@@ -148,7 +139,7 @@ export function Chat({ businessName, history, pending, onSend, onConfirm, onCanc
 
       {!pending?.ops.length && (past.length > 0 || pending) && (
         <div className="wa-suggest" role="group" aria-label="Frasi di esempio">
-          {EXAMPLES.map((ex) => (
+          {examples.map((ex) => (
             <button key={ex} className="wa-chip" onClick={() => pick(ex)}>{ex}</button>
           ))}
         </div>

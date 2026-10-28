@@ -1,114 +1,284 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-28T12:20:00+01:00",
+  "generatedAt": "2026-10-28T13:20:00+01:00",
   "title": "Design System: cms-test demo",
   "extensions": {
     "colorMeta": {
-      "chalk-yellow": { "role": "primary", "displayName": "Gesso giallo", "tonalRamp": ["#3d3210", "#5e4d17", "#82691d", "#a88a24", "#cdab33", "#f4d35e", "#f8e39a", "#fcf3d6"] },
-      "chalk-pink": { "role": "secondary", "displayName": "Gesso rosa", "tonalRamp": ["#3f1e26", "#62303c", "#874455", "#ad5b70", "#d47e95", "#f4a7b9", "#f8c9d4", "#fcebef"] },
-      "slate": { "role": "neutral", "displayName": "Ardesia", "tonalRamp": ["#121516", "#1a1f20", "#23292b", "#343c3f", "#4d575a", "#6f7a7e", "#a3acaf", "#dde1e2"] },
-      "chalk": { "role": "neutral", "displayName": "Gesso", "tonalRamp": ["#3a3935", "#5b5a54", "#7f7d76", "#a3a19a", "#c5c3bc", "#dcdad3", "#f1efe8", "#faf9f6"] },
-      "frame-wood": { "role": "neutral", "displayName": "Legno cornice", "tonalRamp": ["#1f150d", "#2c1f15", "#3b2a1d", "#4a3220", "#6b4a2f", "#8c6745", "#b39272", "#dcc8b4"] },
-      "wa-green": { "role": "tertiary", "displayName": "Verde WhatsApp", "tonalRamp": ["#00261d", "#003d30", "#005c4b", "#00806a", "#00a884", "#3dc9a5", "#8be2cb", "#d3f5ec"] }
+      "brand": {
+        "role": "primary",
+        "displayName": "Cobalto",
+        "tonalRamp": [
+          "#0d1a52",
+          "#132677",
+          "#1b37ad",
+          "#2448d8",
+          "#5574e6",
+          "#8aa0ef",
+          "#c2cff8",
+          "#e8edff"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Grigio freddo",
+        "tonalRamp": [
+          "#1b1f24",
+          "#353b43",
+          "#555d68",
+          "#7a828d",
+          "#a3aab3",
+          "#c9ced4",
+          "#e1e4e8",
+          "#eceef1"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Inchiostro",
+        "tonalRamp": [
+          "#0a0d10",
+          "#12161b",
+          "#2a3038",
+          "#3f4751",
+          "#646d78",
+          "#8e959e",
+          "#c3c8cf",
+          "#f4f6f8"
+        ]
+      },
+      "mark": {
+        "role": "tertiary",
+        "displayName": "Giallo evidenziatore",
+        "tonalRamp": [
+          "#5c4a00",
+          "#8a6f00",
+          "#b89400",
+          "#e0b800",
+          "#ffd23d",
+          "#ffe58a",
+          "#fff1c2",
+          "#fffaeb"
+        ]
+      },
+      "footer": {
+        "role": "neutral",
+        "displayName": "Notte",
+        "tonalRamp": [
+          "#090b0d",
+          "#14181d",
+          "#232a31",
+          "#353e48",
+          "#4f5a66",
+          "#7a8591",
+          "#a3abb5",
+          "#e9ebee"
+        ]
+      },
+      "energia-pop": {
+        "role": "tertiary",
+        "displayName": "Lime palestra",
+        "tonalRamp": [
+          "#2c3a05",
+          "#465c09",
+          "#62800d",
+          "#80a812",
+          "#a4d21f",
+          "#c8f04b",
+          "#def79a",
+          "#f3fcd9"
+        ]
+      }
     },
     "typographyMeta": {
-      "display": { "displayName": "Gesso a doppio tratto", "purpose": "Nome dell'attività e frase-gancio." },
-      "headline": { "displayName": "Titolo di sezione", "purpose": "Menu, Avvisi, Orari, in gesso giallo." },
-      "title": { "displayName": "Stato di oggi", "purpose": "Riga rosa sotto il nome." },
-      "body": { "displayName": "Scrittura a gesso", "purpose": "Piatti, avvisi, orari." },
-      "label": { "displayName": "Gesso piccolo", "purpose": "Descrizioni, contatti, mensola." },
-      "chat": { "displayName": "WhatsApp", "purpose": "Solo dentro il telefono." }
+      "display": {
+        "displayName": "Titolo pagina",
+        "purpose": "Il titolo della demo."
+      },
+      "site-display": {
+        "displayName": "Nome nell'hero",
+        "purpose": "Nome dell'attività nel sito d'esempio, misurato sull'anteprima."
+      },
+      "headline": {
+        "displayName": "Sezione del sito",
+        "purpose": "Servizi, Orari, Novità."
+      },
+      "title": {
+        "displayName": "Titolo",
+        "purpose": "Nomi in elenco, voci di catalogo, intestazione del sito."
+      },
+      "body": {
+        "displayName": "Testo",
+        "purpose": "Messaggi e descrizioni."
+      },
+      "label": {
+        "displayName": "Etichetta",
+        "purpose": "Titoletti dei gruppi, note, stato di oggi."
+      },
+      "site-atelier": {
+        "displayName": "Gloock",
+        "purpose": "Titoli del sito del salone."
+      },
+      "site-bottega": {
+        "displayName": "Archivo 800",
+        "purpose": "Titoli in maiuscolo del sito della ferramenta."
+      },
+      "site-trattoria": {
+        "displayName": "Young Serif",
+        "purpose": "Titoli del sito della pizzeria."
+      },
+      "site-energia": {
+        "displayName": "Unbounded 700",
+        "purpose": "Titoli in maiuscolo del sito della palestra."
+      }
     },
     "shadows": [
-      { "name": "slate-inset", "value": "inset 0 0 60px rgba(0,0,0,.55)", "purpose": "Ardesia incassata nella cornice." },
-      { "name": "frame", "value": "inset 0 0 0 3px #4a3220, 0 18px 40px rgba(0,0,0,.45)", "purpose": "Cornice staccata dalla parete." },
-      { "name": "ledge", "value": "inset 0 3px 0 rgba(0,0,0,.3), 0 10px 18px rgba(0,0,0,.4)", "purpose": "Mensola dei gessetti." },
-      { "name": "phone", "value": "0 24px 50px rgba(0,0,0,.55), -6px 10px 24px rgba(0,0,0,.35)", "purpose": "Il telefono appoggiato sulla lavagna." }
+      {
+        "name": "app-window",
+        "value": "0 1px 2px rgba(18,22,27,.06), 0 24px 60px -12px rgba(18,22,27,.18)",
+        "purpose": "Stacca l'unica finestra dell'app dal fondo."
+      },
+      {
+        "name": "bubble-in",
+        "value": "0 1px 1px rgba(18,22,27,.06)",
+        "purpose": "Fumetto in arrivo sul fondo grigio."
+      }
     ],
     "motion": [
-      { "name": "chalk-rewrite", "value": "1.6s cubic-bezier(.16, 1, .3, 1)", "purpose": "Spugna (blur 6px + dissolvenza) poi gesso da sinistra a destra (clip-path), solo sulle righe cambiate; disattivata con prefers-reduced-motion." }
+      {
+        "name": "just-changed",
+        "value": "2.4s cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Evidenziazione gialla della parte del sito appena cambiata; nulla con prefers-reduced-motion."
+      }
     ],
     "breakpoints": [
-      { "name": "board-single-column", "value": "1100px" },
-      { "name": "chat-first", "value": "899px" },
-      { "name": "small-phone", "value": "420px" }
+      {
+        "name": "narrow-desktop",
+        "value": "1240px"
+      },
+      {
+        "name": "phone",
+        "value": "899px"
+      },
+      {
+        "name": "site-multicolumn (container)",
+        "value": "620px"
+      },
+      {
+        "name": "site-nav-below (container)",
+        "value": "560px"
+      },
+      {
+        "name": "site-nav-own-row (container)",
+        "value": "820px"
+      }
     ]
   },
   "components": [
     {
-      "name": "Voce di menu",
-      "kind": "custom",
-      "description": "Piatto in gesso con puntini fino al prezzo giallo; variante esaurita barrata in rosa.",
-      "html": "<ul class=\"ds-board\"><li class=\"ds-item\"><span class=\"ds-dish\"><span>Margherita</span><span class=\"ds-desc\">Pomodoro, mozzarella, basilico</span></span><span class=\"ds-dots\"></span><span class=\"ds-price\">6,00 €</span></li><li class=\"ds-item ds-sold\"><span class=\"ds-dish\"><span>Carbonara</span><span class=\"ds-desc\">Guanciale, uovo, pecorino</span></span><span class=\"ds-dots\"></span><span class=\"ds-price\">finita!</span></li></ul>",
-      "css": ".ds-board { list-style: none; margin: 0; padding: 24px 28px; background: #23292b; font-family: 'Patrick Hand', 'Segoe Print', cursive; color: #f1efe8; } .ds-item { display: flex; align-items: baseline; gap: 10px; padding: 5px 0; font-size: 23px; line-height: 1.2; } .ds-dish { display: flex; flex-direction: column; } .ds-desc { font-size: 18px; color: rgba(241,239,232,.72); } .ds-dots { flex: 1; min-width: 20px; border-bottom: 2px dotted rgba(241,239,232,.32); transform: translateY(-6px); } .ds-price { color: #f4d35e; font-variant-numeric: tabular-nums; } .ds-sold .ds-dish span { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: #f4a7b9; color: rgba(241,239,232,.72); } .ds-sold .ds-price { color: #f4a7b9; }"
-    },
-    {
-      "name": "Giorno di oggi",
-      "kind": "custom",
-      "description": "Riga degli orari cerchiata a gesso giallo.",
-      "html": "<ol class=\"ds-week\"><li><span class=\"ds-day\">martedì</span><span>19:00–23:30</span></li><li class=\"ds-today\"><span class=\"ds-day\">mercoledì</span><span>19:00–23:30</span></li></ol>",
-      "css": ".ds-week { list-style: none; margin: 0; padding: 20px 28px; background: #23292b; font-family: 'Patrick Hand', cursive; color: #f1efe8; } .ds-week li { display: grid; grid-template-columns: 5.5em auto; gap: 12px; width: fit-content; margin: 0 -18px; padding: 4px 18px; border-radius: 46% 54% 50% 50% / 52% 46% 54% 48%; font-size: 21px; font-variant-numeric: tabular-nums; } .ds-day { color: rgba(241,239,232,.72); } .ds-today { box-shadow: 0 0 0 2px #f4d35e; } .ds-today .ds-day { color: #f4d35e; }"
-    },
-    {
-      "name": "Link di gesso",
+      "name": "Conferma / Annulla",
       "kind": "button",
-      "refersTo": "link-chalk",
-      "description": "Azione testuale sulla parete o sulla mensola.",
-      "html": "<button class=\"ds-chalk-link\">Ricomincia da capo</button>",
-      "css": ".ds-chalk-link { background: none; border: 0; padding: 0; color: #f4d35e; font: 19px 'Patrick Hand', cursive; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; cursor: pointer; } .ds-chalk-link:hover { text-decoration-thickness: 2px; } .ds-chalk-link:focus-visible { outline: 2px dashed #f4d35e; outline-offset: 3px; }"
+      "refersTo": "button-confirm",
+      "description": "Azioni sotto l'anteprima della modifica in chat.",
+      "html": "<div class=\"ds-actions\"><button class=\"ds-confirm\">Conferma</button><button class=\"ds-cancel\">Annulla</button></div>",
+      "css": ".ds-actions { display: flex; gap: 8px; width: 280px; font-family: Onest, system-ui, sans-serif; } .ds-confirm, .ds-cancel { flex: 1; padding: 9px 12px; border-radius: 10px; font-weight: 600; font-size: 14.5px; cursor: pointer; } .ds-confirm { background: #2448d8; border: 1px solid #2448d8; color: #fff; } .ds-confirm:hover { background: #1b37ad; } .ds-cancel { background: #fff; border: 1px solid #e1e4e8; color: #12161b; } .ds-cancel:hover { border-color: #c3c8cf; } .ds-confirm:focus-visible, .ds-cancel:focus-visible { outline: 2px solid #2448d8; outline-offset: 2px; }"
     },
     {
-      "name": "Anteprima in chat",
+      "name": "Fumetti",
       "kind": "custom",
-      "refersTo": "wa-bubble-in",
-      "description": "Risposta del bot con l'anteprima e le azioni Conferma / Annulla.",
-      "html": "<div class=\"ds-wa\"><div class=\"ds-bubble-out\">Sabato chiudiamo alle 15</div><div class=\"ds-bubble-in\">Ecco cosa cambierà:<ul><li>31 ottobre 2026: 12:00–15:00</li></ul><div class=\"ds-actions\"><button class=\"ds-wa-action\">Conferma</button><button class=\"ds-wa-action\">Annulla</button></div></div></div>",
-      "css": ".ds-wa { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: #0b141a; font: 15px/1.38 system-ui, sans-serif; color: #e9edef; } .ds-bubble-in, .ds-bubble-out { max-width: 86%; padding: 7px 10px 8px; border-radius: 9px; } .ds-bubble-in { align-self: flex-start; background: #202c33; border-top-left-radius: 2px; } .ds-bubble-out { align-self: flex-end; background: #005c4b; border-top-right-radius: 2px; } .ds-bubble-in ul { margin: 4px 0 0; padding-left: 18px; } .ds-actions { display: flex; gap: 6px; margin-top: 8px; } .ds-wa-action { flex: 1; padding: 8px 10px; border: 0; border-radius: 7px; background: rgba(255,255,255,.06); color: #53bdeb; font-weight: 600; cursor: pointer; } .ds-wa-action:hover { background: rgba(255,255,255,.11); } .ds-wa-action:focus-visible { outline: 2px dashed #f4d35e; outline-offset: 3px; }"
-    },
-    {
-      "name": "Suggerimento",
-      "kind": "chip",
-      "refersTo": "wa-chip",
-      "description": "Frase d'esempio sotto la chat.",
-      "html": "<button class=\"ds-wa-chip\">La carbonara è finita</button>",
-      "css": ".ds-wa-chip { padding: 7px 12px; border: 1px solid #2a3942; border-radius: 999px; background: #202c33; color: #e9edef; font: 14px system-ui, sans-serif; cursor: pointer; } .ds-wa-chip:hover { border-color: #00a884; } .ds-wa-chip:focus-visible { outline: 2px dashed #f4d35e; outline-offset: 3px; }"
+      "refersTo": "bubble-out",
+      "description": "Messaggio inviato e risposta dell'assistente.",
+      "html": "<div class=\"ds-log\"><div class=\"ds-out\">La piega costa 25 euro</div><div class=\"ds-in\">Ecco cosa cambierà:<ul><li>Piega: nuovo prezzo 25,00 €</li></ul></div></div>",
+      "css": ".ds-log { display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #f4f6f8; font: 15px/1.45 Onest, system-ui, sans-serif; } .ds-out, .ds-in { max-width: 86%; padding: 10px 13px; border-radius: 16px; } .ds-out { align-self: flex-end; background: #2448d8; color: #fff; border-bottom-right-radius: 5px; } .ds-in { align-self: flex-start; background: #fff; color: #12161b; border-bottom-left-radius: 5px; box-shadow: 0 1px 1px rgba(18,22,27,.06); } .ds-in ul { margin: 6px 0 0; padding-left: 18px; }"
     },
     {
       "name": "Campo messaggio",
       "kind": "input",
-      "refersTo": "wa-input",
-      "description": "Composer WhatsApp con invio circolare.",
+      "refersTo": "message-input",
+      "description": "Composer con invio circolare.",
       "html": "<form class=\"ds-compose\"><textarea rows=\"1\" placeholder=\"Scrivi cosa cambia…\"></textarea><button type=\"submit\" aria-label=\"Invia\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\"><path d=\"M3.4 20.4 21 12 3.4 3.6l.1 6.5L15 12 3.5 13.9z\" fill=\"currentColor\"/></svg></button></form>",
-      "css": ".ds-compose { display: flex; align-items: flex-end; gap: 6px; padding: 8px; background: #0b141a; } .ds-compose textarea { flex: 1; min-height: 44px; padding: 11px 16px; border: 0; border-radius: 22px; background: #2a3942; color: #e9edef; font: 16px/1.35 system-ui, sans-serif; resize: none; caret-color: #00a884; } .ds-compose textarea::placeholder { color: #8696a0; } .ds-compose button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #00a884; color: #0b141a; cursor: pointer; } .ds-compose button:focus-visible { outline: 2px dashed #f4d35e; outline-offset: 3px; }"
+      "css": ".ds-compose { display: flex; align-items: flex-end; gap: 8px; padding: 10px 14px; background: #fff; } .ds-compose textarea { flex: 1; min-height: 46px; padding: 12px 16px; border: 1px solid #e1e4e8; border-radius: 23px; background: #f4f6f8; color: #12161b; font: 16px/1.35 Onest, system-ui, sans-serif; resize: none; caret-color: #2448d8; } .ds-compose textarea:focus-visible { outline: 2px solid #2448d8; outline-offset: 2px; } .ds-compose button { display: grid; place-items: center; width: 46px; height: 46px; border: 0; border-radius: 50%; background: #2448d8; color: #fff; cursor: pointer; }"
+    },
+    {
+      "name": "Voce dell'elenco attività",
+      "kind": "nav",
+      "refersTo": "list-item-current",
+      "description": "Attività come chat; quella attiva su brand-soft, pallino se aggiornata.",
+      "html": "<button class=\"ds-item\" aria-current=\"true\"><span class=\"ds-av\" style=\"background:#a3305f\">S</span><span class=\"ds-t\"><b>Salone Giulia</b><span>La piega costa 25 euro</span></span><span class=\"ds-dot\"></span></button>",
+      "css": ".ds-item { display: flex; align-items: center; gap: 12px; width: 260px; padding: 11px 12px; border: 0; border-radius: 14px; background: #e8edff; text-align: left; font-family: Onest, system-ui, sans-serif; cursor: pointer; } .ds-item:hover { background: #f4f6f8; } .ds-av { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; color: #fff; font-weight: 600; } .ds-t { display: flex; flex-direction: column; flex: 1; min-width: 0; } .ds-t b { font-weight: 600; font-size: 15.5px; color: #12161b; } .ds-t span { font-size: 14px; color: #646d78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-dot { width: 10px; height: 10px; border-radius: 50%; background: #2448d8; }"
+    },
+    {
+      "name": "Intestazione del sito d'esempio",
+      "kind": "nav",
+      "description": "Header fisso con logo, menu e Chiama nel colore dell'attività.",
+      "html": "<header class=\"ds-head\" style=\"--accent:#0e6b62\"><span class=\"ds-logo\">S</span><span class=\"ds-name\">Studio Bianchi<small>Fisioterapia e riabilitazione</small></span><nav><a href=\"#\">Prestazioni</a><a href=\"#\">Orari</a><a href=\"#\">Contatti</a></nav><a class=\"ds-cta\" href=\"#\">Chiama</a></header>",
+      "css": ".ds-head { display: flex; align-items: center; gap: 24px; padding: 14px 28px; background: #fff; border-bottom: 1px solid #e1e4e8; font-family: Onest, system-ui, sans-serif; } .ds-logo { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: var(--accent); color: #fff; font-weight: 700; } .ds-name { margin-right: auto; font-weight: 600; } .ds-name small { display: block; font-weight: 400; font-size: 12.5px; color: #646d78; } .ds-head nav { display: flex; gap: 22px; } .ds-head nav a { font-size: 14.5px; font-weight: 500; color: #3f4751; text-decoration: none; } .ds-head nav a:hover { color: var(--accent); } .ds-cta { padding: 9px 18px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 600; font-size: 14.5px; text-decoration: none; }"
+    },
+    {
+      "name": "Hero del sito d'esempio",
+      "kind": "custom",
+      "description": "Colore pieno dell'attività, nome grande e stato di oggi.",
+      "html": "<section class=\"ds-hero\" style=\"--accent:#3b3fb6\"><h1>Palestra Move</h1><p>Sala pesi, corsi e personal training.</p><span class=\"ds-status\"><i></i>Oggi aperto 7–22</span></section>",
+      "css": ".ds-hero { padding: 56px 40px 48px; background: var(--accent); color: #fff; font-family: Onest, system-ui, sans-serif; } .ds-hero h1 { margin: 0; font-size: 60px; font-weight: 700; line-height: .98; letter-spacing: -.035em; } .ds-hero p { margin: 16px 0 0; font-size: 18px; color: rgba(255,255,255,.9); } .ds-status { display: inline-flex; align-items: center; gap: 9px; margin-top: 24px; padding: 9px 16px; border-radius: 999px; background: #fff; color: #12161b; font-weight: 600; } .ds-status i { width: 9px; height: 9px; border-radius: 50%; background: #1f9d55; }"
+    },
+    {
+      "name": "Riga appena cambiata",
+      "kind": "custom",
+      "description": "Evidenziazione gialla che sfuma su una voce del catalogo.",
+      "html": "<ul class=\"ds-cat\"><li><span>Taglio donna</span><span>35,00 €</span></li><li class=\"ds-changed\"><span>Piega</span><span>25,00 €</span></li></ul>",
+      "css": ".ds-cat { list-style: none; margin: 0; padding: 16px 28px; width: 340px; font: 16px Onest, system-ui, sans-serif; } .ds-cat li { display: flex; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid #e1e4e8; font-weight: 600; } .ds-changed { animation: ds-chg 2.4s cubic-bezier(.16,1,.3,1) infinite; } @keyframes ds-chg { 0%, 35% { background: #ffe58a; box-shadow: 0 0 0 6px #ffe58a; } 100% { background: transparent; box-shadow: 0 0 0 6px transparent; } } @media (prefers-reduced-motion: reduce) { .ds-changed { animation: none; background: #ffe58a; } }"
     }
   ],
   "narrative": {
-    "northStar": "La lavagna del locale",
-    "overview": "La demo è una parete di bottega: una lavagna in ardesia dentro una cornice di legno, su cui il sito dell'attività è scritto a gesso. Il titolare non vede un pannello: vede la lavagna che riscriverebbe a mano ogni mattina, e un telefono appoggiato contro di essa da cui la aggiorna scrivendo come su WhatsApp.\n\nDue materiali, due voci. Tutto ciò che è il sito è gesso su ardesia, scritto a mano, con colori di gesso assegnati per ruolo. Tutto ciò che è il canale è l'interfaccia scura di WhatsApp, riconoscibile e senza gesso. Il momento firma lega i due: alla conferma in chat, le righe cambiate della lavagna vengono cancellate con la spugna e riscritte.",
+    "northStar": "Il bancone dei messaggi",
+    "overview": "La demo è il prodotto vero, non una sua metafora: un'app di messaggi chiara, in cui ogni attività è una chat, e accanto il sito di quell'attività, con intestazione e piè di pagina come un sito reale. Il titolare scrive come su WhatsApp, conferma, e vede la riga del sito illuminarsi. Il freelance vede che ogni cliente è una chat in più.\n\nDue livelli, due voci. La cornice del prodotto è sobria e silenziosa: grigio freddo, bianco, linee sottili e un solo blu cobalto. I siti d'esempio invece hanno carattere, e ognuno il suo, come se li avessero fatti grafici diversi: foto vere, carattere proprio, impaginazione dell'hero propria. È la prova che il prodotto serve qualsiasi settore e che i dati restano gli stessi sotto qualunque veste. Il giallo compare solo per un attimo, su ciò che è appena cambiato.\n\nRifiutati in modo esplicito dall'utente: le metafore di un mestiere o di un oggetto (lavagna, tabellone) e ogni identità che leghi il prodotto alla ristorazione.",
     "keyCharacteristics": [
-      "Ardesia scura come superficie del contenuto, legno come cornice e parete.",
-      "Due grafie a mano: gesso a doppio tratto per titoli, scrittura leggibile per tutto il resto.",
-      "Gesso colorato per ruolo, mai per decorazione.",
-      "Il telefono è l'unico oggetto non di gesso, e porta l'azione primaria.",
-      "Una sola animazione d'autore: la riscrittura a gesso."
+      "Una sola grande finestra in tre colonne: attività, conversazione, sito.",
+      "Un solo colore del prodotto (cobalto) e una sola famiglia tipografica (Onest).",
+      "Cinque siti d'esempio, cinque stili: colore, carattere, hero e galleria diversi.",
+      "Siti credibili: barra informazioni, intestazione fissa con menu e due azioni, punti di forza, contenuti dai dati, \"Dove siamo\", galleria, piè di pagina.",
+      "Una sola animazione d'autore: l'evidenziazione gialla di ciò che è cambiato."
     ],
     "rules": [
-      { "name": "The Chalk Roles Rule", "body": "Giallo = da trovare (titoli, prezzi, azioni); rosa = adesso o cambiato (oggi, avvisi, esaurito); bianco = tutto il resto. Nessun terzo colore sulla lavagna.", "section": "colors" },
-      { "name": "The Two Worlds Rule", "body": "I colori wa-* non toccano mai la lavagna, e i gessi non entrano nel telefono (eccezione: l'iniziale gialla nell'avatar).", "section": "colors" },
-      { "name": "The No Tiny Chalk Rule", "body": "Nessun testo di gesso sotto i 17px: se non ci sta, cambia la disposizione (come gli orari, passati da riga a elenco), non la dimensione.", "section": "typography" },
-      { "name": "The Objects Only Rule", "body": "Fanno ombra solo gli oggetti reali (cornice, mensola, gessetti, telefono). Testi e sezioni della lavagna non hanno ombre né contenitori.", "section": "elevation" }
+      {
+        "name": "The One Product Color Rule",
+        "body": "Il cobalto è il prodotto; il colore di un'attività resta dentro il suo sito. I due non si mescolano mai.",
+        "section": "colors"
+      },
+      {
+        "name": "The Yellow Means Changed Rule",
+        "body": "Il giallo esiste solo per segnare ciò che è appena cambiato, e sparisce da solo.",
+        "section": "colors"
+      },
+      {
+        "name": "The Product Speaks Onest Rule",
+        "body": "La cornice del prodotto usa solo Onest; i caratteri dei siti non escono mai dall'anteprima.",
+        "section": "typography"
+      },
+      {
+        "name": "The Numbers Line Up Rule",
+        "body": "Prezzi e orari usano cifre tabulari e non vanno mai a capo a metà di una fascia oraria.",
+        "section": "typography"
+      },
+      {
+        "name": "The Lines Not Cards Rule",
+        "body": "Le parti si separano con linee da 1px, non con card. Niente card dentro card.",
+        "section": "elevation"
+      }
     ],
     "dos": [
-      "Do scrivere ogni contenuto del sito sulla lavagna in gesso, con i ruoli giallo/rosa/bianco.",
-      "Do far arrivare ogni modifica dalla chat, con anteprima e conferma, e mostrarla con la riscrittura a gesso.",
-      "Do dichiarare come esempio i dati inventati (la mensola dice \"sito d'esempio\").",
-      "Do temare le superfici del browser: selezione gialla su ardesia, focus tratteggiato giallo, barre di scorrimento color legno."
+      "Do tenere il cobalto come unico colore del prodotto e il colore di ogni attività dentro il suo sito.",
+      "Do costruire ogni sito d'esempio come un sito vero: intestazione, menu, contenuti dai dati, piè di pagina.",
+      "Do dichiarare sempre che attività e dati sono inventati, e usare domini .example.",
+      "Do usare foto vere a licenza gratuita (Unsplash) con testo alternativo in italiano, e citarle nel piè di pagina.",
+      "Do dare a ogni nuovo sito d'esempio uno stile suo (look), diverso dagli altri, con gli stessi blocchi di dati.",
+      "Do mostrare ogni modifica con l'evidenziazione gialla e lo scorrimento fino a lei."
     ],
     "donts": [
-      "Don't mettere card, contenitori bianchi o ombre attorno alle sezioni della lavagna.",
-      "Don't usare il gesso velato (chalk-faint) per testo che va letto.",
-      "Don't usare emoji o glifi come icone: le icone sono SVG.",
-      "Don't aggiungere altre animazioni d'ingresso: la riscrittura è l'unico movimento d'autore."
+      "Don't usare metafore di un mestiere o di un oggetto (lavagna, tabellone) per l'identità del prodotto.",
+      "Don't far sembrare la ristorazione il settore \"vero\": tutte le attività hanno lo stesso peso.",
+      "Don't separare le parti con card o ombre: linee da 1px.",
+      "Don't rendere chiamabili i numeri di telefono d'esempio.",
+      "Don't aggiungere animazioni d'ingresso: l'evidenziazione è l'unico movimento."
     ]
   }
 }

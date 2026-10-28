@@ -2,29 +2,30 @@
 version: 1
 slug: "src-app-tsx"
 primary_target: "src/App.tsx"
-related_targets: ["src/SitePreview.tsx","src/styles.css"]
+related_targets: ["src/Site.tsx","src/BusinessList.tsx","src/Chat.tsx","src/styles.css"]
 ---
 
 # Demo pubblica (GitHub Pages)
 
 Scope: `apps/demo`, intera pagina. Mode: Persuade.
-Audience: titolari di piccole attività, spesso da telefono. Job: provare a cambiare il sito scrivendo un messaggio, vederlo cambiare, capire che si fa da WhatsApp.
-Action: scrivere (o toccare) un messaggio nella chat WhatsApp simulata, poi Conferma.
-Proof: il giro completo dal vivo, con dati di esempio dichiarati come esempio. Nessuna testimonianza o numero inventato.
+Audience: titolari di attività di qualsiasi settore e freelance che fanno siti per clienti; spesso da telefono.
+Action: scegliere un'attività, scrivere (o toccare) un messaggio, Conferma.
+Proof: il giro completo dal vivo su cinque attività inventate di settori diversi, dichiarate come esempio; ogni sito d'esempio ha intestazione e piè di pagina come un sito vero.
 Constraints: stessa logica (`interpretMessage`, `applyOps`, `toSchemaOrg`, storage locale, annulla), base `/cms-test/`, italiano.
-Unresolved: il sito pubblico reale (`apps/web`) non ha ancora l'aspetto della lavagna; decidere se portarlo nello stesso mondo.
+Unresolved: il sito pubblico reale (`apps/web`) non segue ancora questo aspetto.
+History: dopo l'approvazione l'utente ha chiesto foto, siti diversi tra loro e più elementi utili (header ecc.). Rifiutate "La lavagna" (legata alla ristorazione) e "Il tabellone" (all'utente non è piaciuto); l'utente ha chiesto niente metafore, un sito con header e footer, "bello di design".
 
 ## Direction contract
 
-THESIS: Il sito è la lavagna che il titolare riscrive ogni giorno: un messaggio su WhatsApp, e il gesso si cancella e si riscrive. Rifiuta la demo SaaS a due card bianche (chat a sinistra, sito a destra).
+THESIS: La demo è un prodotto vero: un'app di messaggi in cui ogni attività è una chat, e accanto il suo sito, che cambia mentre confermi. Rifiuta sia la landing SaaS con mockup di telefono sia le metafore (lavagna, tabellone).
 
-OWN-WORLD: Ardesia scura con aloni di gesso, cornice di legno su parete scura di legno; scrittura a gesso bianca, gialla per titoli e prezzi, rosa per lo stato di oggi; titolo in gesso a doppio tratto (Cabin Sketch), testo a mano leggibile (Patrick Hand). L'unico oggetto non di gesso è il telefono, appoggiato contro la lavagna dal suo bordo alto, con l'interfaccia WhatsApp scura; la mensola in basso tiene i gessetti (adattamento: un telefono poggiato sulla mensola porterebbe il campo messaggio sotto la piega a 1440×900).
+OWN-WORLD: Cornice chiara e nitida: fondo grigio freddo, pannelli bianchi divisi da linee sottili, inchiostro quasi nero, blu cobalto come unico colore del prodotto (messaggi inviati, Conferma, link). Una sola famiglia, Onest. I siti d'esempio sono fatti come da grafici diversi: ognuno ha colore, carattere (Gloock, Archivo, Young Serif, Onest, Unbounded) e impaginazione dell'hero propri, foto vere da Unsplash, barra informazioni, intestazione fissa con menu, Scrivici e Chiama, punti di forza, Dove siamo, galleria e piè di pagina scuro. Il giallo segna solo ciò che è appena cambiato.
 
-STORY: Capisce in una riga cosa fa il prodotto, tocca una frase d'esempio, vede l'anteprima in chat, conferma, guarda la lavagna riscriversi, e sa che può farlo dal suo WhatsApp.
+STORY: Capisce in una riga cosa fa, vede cinque attività di settori diversi, sceglie la sua, tocca una frase, conferma, vede la riga del sito illuminarsi.
 
-FIRST VIEWPORT: Desktop: sulla parete, sopra la lavagna, la frase-gancio in gesso e la riga su cosa fa la demo con Ricomincia (adattamento: sulla cornice non c'era spazio leggibile). La lavagna dentro la cornice: nome in gesso grande e stato di oggi in rosa; sotto, Menu a sinistra, Avvisi e Orari a destra. Orari come elenco verticale dei 7 giorni, con oggi cerchiato a gesso (adattamento: la riga di 7 colonne era illeggibile a 390px). La cornice finisce in una mensola con i gessetti. A destra il telefono parte dal bordo alto della lavagna e la sovrappone, con la chat aperta, le frasi d'esempio come risposte rapide e il campo messaggio, sempre nel primo schermo: è l'azione primaria. Mobile: prima la chat (azione), poi la lavagna; dopo la conferma si scorre alla prima riga riscritta.
+FIRST VIEWPORT: In alto a sinistra marchio e titolo grande, a destra la frase di spiegazione. Sotto, una sola grande finestra arrotondata in tre colonne: elenco attività (272px), conversazione con esempi e campo messaggio (380px), anteprima del sito con barra indirizzo. Il campo messaggio è sempre nel primo schermo. Mobile: titolo, attività in riga orizzontale, chat, sito; dopo la conferma si scorre al sito.
 
-FORM: La lavagna, n. 1 della lista ordinata (scelta dall'utente come pick). seed:8d8da9464f9682e1
-Interazione firma: alla conferma le righe cambiate si cancellano con una passata di spugna (sfocatura e dissolvenza) e si riscrivono a gesso da sinistra a destra (clip-path), una sola volta, con prefers-reduced-motion rispettato.
+FORM: La chat delle attività (n. 7 della lista del secondo giro, assegnata dal roll; scelta da Claude su richiesta dell'utente dopo il rifiuto del tabellone). seed:f1201e532985f45d
+Interazione firma: alla conferma la parte del sito cambiata si illumina di giallo e sfuma in 2,4 s, e l'anteprima scorre fino a lei; con prefers-reduced-motion niente animazione.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

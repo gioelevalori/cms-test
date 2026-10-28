@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>La chat delle attività</title>
+<style>
+*{box-sizing:border-box}body{margin:0;width:1440px;height:900px;background:#e9ecef;font-family:system-ui,Segoe UI,sans-serif;color:#14181c;overflow:hidden;display:grid;grid-template-columns:340px 520px 1fr}
+.list{background:#fff;border-right:1px solid #dde1e5}.list h1{font-size:30px;margin:28px 24px 6px}.list p{margin:0 24px 18px;color:#5b6570;font-size:17px}
+.row{display:flex;gap:12px;align-items:center;padding:14px 24px;border-top:1px solid #eef0f2}.row.on{background:#e8edff}.av{width:46px;height:46px;border-radius:50%;background:#2448d8;color:#fff;display:grid;place-items:center;font-weight:700}
+.row b{display:block;font-size:17px}.row span{font-size:14px;color:#5b6570}
+.chat{background:#f6f7f9;display:flex;flex-direction:column;border-right:1px solid #dde1e5}.head{background:#fff;padding:18px 22px;font-weight:700;font-size:18px;border-bottom:1px solid #dde1e5}
+.log{flex:1;padding:22px;display:flex;flex-direction:column;gap:12px}.b{max-width:80%;padding:12px 14px;border-radius:12px;font-size:17px}.out{align-self:flex-end;background:#2448d8;color:#fff}.in{align-self:flex-start;background:#fff;border:1px solid #dde1e5}
+.btn{display:inline-block;margin-top:8px;margin-right:6px;padding:8px 14px;border-radius:8px;background:#14181c;color:#fff;font-size:15px}
+.tick{color:#2448d8;font-weight:700}
+.compose{margin:16px;padding:16px 18px;border-radius:26px;background:#fff;border:1px solid #dde1e5;color:#8b949e;font-size:17px}
+.site{background:#fff;padding:36px 40px}.site small{color:#5b6570;font-size:14px;letter-spacing:.04em}.site h2{font-size:46px;margin:10px 0 6px}.today{display:inline-block;padding:6px 12px;border-radius:999px;background:#e8edff;color:#2448d8;font-weight:700}
+.blk{margin-top:28px}.blk h3{margin:0 0 10px;font-size:20px}.li{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eef0f2;font-size:18px}.li.new{background:#fff5c7}
+</style></head><body>
+<div class="list"><h1>Prova con la tua attività</h1><p>Scegli una chat: scrivi cosa cambia, il sito si aggiorna.</p>
+<div class="row"><div class="av">P</div><div><b>Pizzeria da Mario</b><span>Sabato chiudiamo alle 15</span></div></div>
+<div class="row on"><div class="av">S</div><div><b>Salone Giulia</b><span>La piega costa 25 euro</span></div></div>
+<div class="row"><div class="av">F</div><div><b>Ferramenta Rossi</b><span>Domani chiusi per inventario</span></div></div>
+<div class="row"><div class="av">S</div><div><b>Studio Bianchi</b><span>Dal 10 al 20 agosto chiusi</span></div></div>
+<div class="row"><div class="av">P</div><div><b>Palestra Move</b><span>Nuovo corso di pilates</span></div></div></div>
+<div class="chat"><div class="head">Salone Giulia · assistente del sito</div><div class="log">
+<div class="b out">La piega costa 25 euro <span style="opacity:.7;font-size:13px">✓✓</span></div>
+<div class="b in">Ecco cosa cambierà:<br>• Piega: 25,00 €<div><span class="btn">Conferma</span><span class="btn" style="background:#e9ecef;color:#14181c">Annulla</span></div></div>
+</div><div class="compose">Scrivi cosa cambia…</div></div>
+<div class="site"><small>SALONEGIULIA.IT · ANTEPRIMA</small><h2>Salone Giulia</h2><span class="today">Oggi aperto 9:00–19:00</span>
+<div class="blk"><h3>Servizi</h3><div class="li"><span>Taglio donna</span><span>35,00 €</span></div><div class="li new"><span>Piega</span><span>25,00 €</span></div><div class="li"><span>Colore</span><span>55,00 €</span></div></div>
+<div class="blk"><h3>Orari</h3><div class="li"><span>lunedì</span><span>chiuso</span></div><div class="li"><span>martedì – sabato</span><span>9:00–19:00</span></div></div></div>
+</body></html>
