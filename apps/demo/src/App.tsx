@@ -1,56 +1,34 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { applyOps, describeOp, interpretMessage, toSchemaOrg, todayIn, type ChangeOp } from '@cms/shared';
 import { SitePreview } from './SitePreview';
+import { Chat, type Pending } from './Chat';
 import { loadState, resetState, saveState, type HistoryEntry } from './storage';
-
-const EXAMPLES = [
-  'Sabato chiudiamo alle 15',
-  'Domani siamo chiusi per inventario',
-  'Dal 10 al 20 agosto chiusi per ferie',
-  'La carbonara è finita',
-  'La margherita costa 7 euro',
-  'Aggiungi la diavola a 8 euro nella sezione pizze',
-  'Evento il 12 dicembre: serata jazz dal vivo',
-  'Il lunedì siamo chiusi',
-];
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
-interface Proposal {
-  message: string;
-  ops: ChangeOp[];
-  summary: string[];
-  unrecognized: string[];
-}
-
 export function App() {
   const [state, setState] = useState(loadState);
-  const [message, setMessage] = useState('');
-  const [proposal, setProposal] = useState<Proposal | null>(null);
-  const [notUnderstood, setNotUnderstood] = useState(false);
-  const [flash, setFlash] = useState(false);
+  const [pending, setPending] = useState<Pending | null>(null);
   const [showSchema, setShowSchema] = useState(false);
   const today = useMemo(() => todayIn('Europe/Rome'), []);
 
   useEffect(() => saveState(state), [state]);
 
-  function send(e?: FormEvent) {
-    e?.preventDefault();
-    const text = message.trim();
-    if (!text) return;
+  function send(text: string) {
     const { ops, unrecognized } = interpretMessage(text, state.data, today);
-    setNotUnderstood(ops.length === 0);
-    setProposal(ops.length ? { message: text, ops, summary: ops.map((op) => describeOp(op, state.data)), unrecognized } : null);
+    setPending({
+      message: text,
+      ops,
+      summary: ops.map((op: ChangeOp) => describeOp(op, state.data)),
+      unrecognized,
+    });
   }
 
   function confirm() {
-    if (!proposal) return;
-    const entry: HistoryEntry = { id: newId(), message: proposal.message, summary: proposal.summary, before: state.data, at: new Date().toISOString() };
-    setState({ data: applyOps(state.data, proposal.ops, newId), history: [entry, ...state.history].slice(0, 20) });
-    setProposal(null);
-    setMessage('');
-    setFlash(true);
-    setTimeout(() => setFlash(false), 900);
+    if (!pending || pending.ops.length === 0) return;
+    const entry: HistoryEntry = { id: newId(), message: pending.message, summary: pending.summary, before: state.data, at: new Date().toISOString() };
+    setState({ data: applyOps(state.data, pending.ops, newId), history: [entry, ...state.history].slice(0, 20) });
+    setPending(null);
   }
 
   function undo() {
@@ -58,76 +36,50 @@ export function App() {
     if (last) setState({ data: last.before, history: rest });
   }
 
+  function restart() {
+    setState(resetState());
+    setPending(null);
+  }
+
   return (
-    <div className="app">
-      <div className="banner">
-        <strong>cms-test</strong> · demo statica: tutto gira nel tuo browser e i dati restano qui. La versione completa (API e
-        database) è nel repository.
-        <button className="link" onClick={() => { setState(resetState()); setProposal(null); }}>Ricomincia</button>
-      </div>
+    <div className="wall">
+      <div className="stage">
+      <header className="ledge-top">
+        <p className="hook">Il sito della tua attività si aggiorna con un messaggio WhatsApp.</p>
+        <p className="fine">
+          Demo: scrivi nella chat come faresti su WhatsApp e guarda la lavagna cambiare. Tutto resta nel tuo browser, nessun messaggio viene inviato.{' '}
+          <button className="text-btn" onClick={restart}>Ricomincia da capo</button>
+        </p>
+      </header>
 
-      <div className="layout">
-        <aside className="panel">
-          <h2>Cosa cambia oggi?</h2>
-          <p className="muted">Scrivi come parleresti a un collaboratore. Vedi l'anteprima, poi conferma.</p>
-          <form onSubmit={send}>
-            <textarea
-              rows={3}
-              value={message}
-              placeholder="Es. Sabato chiudiamo alle 15"
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-            />
-            <button type="submit" disabled={!message.trim()}>Invia</button>
-          </form>
+        <Chat
+          businessName={state.data.name}
+          history={state.history}
+          pending={pending}
+          onSend={send}
+          onConfirm={confirm}
+          onCancel={() => setPending(null)}
+          onUndo={undo}
+        />
 
-          {!proposal && (
-            <div className="examples">
-              {EXAMPLES.map((ex) => (
-                <button key={ex} className="chip" onClick={() => { setMessage(ex); setNotUnderstood(false); }}>{ex}</button>
-              ))}
-            </div>
-          )}
-
-          {notUnderstood && !proposal && (
-            <div className="proposal muted-box">Non ho capito questo messaggio. Prova con una delle frasi di esempio.</div>
-          )}
-
-          {proposal && (
-            <div className="proposal">
-              <p className="label">Ecco cosa cambierà:</p>
-              <ul>{proposal.summary.map((s, i) => <li key={i}>{s}</li>)}</ul>
-              {proposal.unrecognized.length > 0 && <p className="muted small">Non ho capito: “{proposal.unrecognized.join('”, “')}”</p>}
-              <div className="actions">
-                <button onClick={confirm}>Conferma</button>
-                <button className="ghost" onClick={() => setProposal(null)}>Annulla</button>
-              </div>
-            </div>
-          )}
-
-          <h3>Cronologia</h3>
-          {state.history.length === 0 && <p className="muted small">Ancora nessuna modifica.</p>}
-          <ul className="history">
-            {state.history.map((h, i) => (
-              <li key={h.id}>
-                <p className="quote">“{h.message}”</p>
-                <ul>{h.summary.map((s, j) => <li key={j}>{s}</li>)}</ul>
-                {i === 0 && <button className="ghost small" onClick={undo}>Annulla questa modifica</button>}
-              </li>
-            ))}
-          </ul>
-
-          <button className="link" onClick={() => setShowSchema(!showSchema)}>
-            {showSchema ? 'Nascondi' : 'Mostra'} i dati per Google (schema.org)
-          </button>
-          {showSchema && <pre className="schema">{JSON.stringify(toSchemaOrg(state.data, 'https://example.com'), null, 2)}</pre>}
-        </aside>
-
-        <main className="preview">
-          <div className="browser-bar"><span /><span /><span /><em>pizzeriadamario.it</em></div>
-          <SitePreview data={state.data} today={today} highlight={flash} />
+        <main className="frame" aria-label="Anteprima del sito">
+          <SitePreview data={state.data} today={today} />
+          <div className="tray">
+            <span className="chalk-sticks" aria-hidden="true"><i /><i /><i /></span>
+            <span className="tray-note">Anteprima di un sito d'esempio: attività e dati sono inventati</span>
+            <button className="text-btn" aria-expanded={showSchema} onClick={() => setShowSchema(!showSchema)}>
+              {showSchema ? 'Nascondi' : 'Mostra'} cosa legge Google
+            </button>
+          </div>
         </main>
       </div>
+
+      {showSchema && (
+        <section className="schema" aria-label="Dati schema.org">
+          <p>Gli stessi dati, nel formato schema.org che Google usa per orari e menu. Si aggiornano insieme alla lavagna.</p>
+          <pre>{JSON.stringify(toSchemaOrg(state.data, 'https://example.com'), null, 2)}</pre>
+        </section>
+      )}
     </div>
   );
 }

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>Lavagna</title>
+<style>
+*{box-sizing:border-box}body{margin:0;width:1440px;height:900px;background:#6b4a2f;font-family:'Segoe Print','Comic Sans MS',cursive;overflow:hidden}
+.board{position:absolute;inset:40px;background:radial-gradient(ellipse at 30% 30%,#33393b,#202526);border:22px solid #4a3220;color:#f1efe8;padding:50px 70px}
+h1{margin:0;font-size:72px;font-weight:400}h1 span{color:#f4d35e}
+.today{font-size:34px;color:#f4a7b9;margin-top:6px}
+.cols{display:flex;gap:60px;margin-top:40px}.col{flex:1;font-size:28px;line-height:1.7}.col b{color:#f4d35e;font-weight:400}
+.compose{position:absolute;left:70px;right:70px;bottom:50px;border:2px dashed #f1efe888;border-radius:14px;padding:22px 26px;font-size:30px;color:#f1efe8aa}
+.compose i{float:right;font-style:normal;background:#f4d35e;color:#202526;padding:4px 22px;border-radius:10px}
+.strike{text-decoration:line-through;color:#f1efe866}
+</style></head><body><div class="board">
+<h1>Pizzeria da <span>Mario</span></h1><div class="today">oggi aperti 19:00 – 23:30</div>
+<div class="cols"><div class="col"><b>Pizze</b><br>Margherita … 6 €<br>Marinara … 5 €<br>Capricciosa … 8,50 €</div><div class="col"><b>Primi</b><br><span class="strike">Carbonara … 11 €</span><br><b>Avvisi</b><br>Sabato chiudiamo alle 15</div></div>
+<div class="compose">Scrivi alla lavagna: “La carbonara è finita” <i>Scrivi</i></div>
+</div></body></html>

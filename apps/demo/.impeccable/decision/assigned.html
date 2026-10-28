@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>Porta del negozio</title>
+<style>
+*{box-sizing:border-box}body{margin:0;width:1440px;height:900px;background:#1f3a2e;font-family:Arial,Helvetica,sans-serif;color:#f7f5ee;overflow:hidden}
+.frame{position:absolute;inset:28px;border:14px solid #173026;background:linear-gradient(160deg,#2b302d,#1d2120);}
+.vinyl{position:absolute;left:70px;top:40px;font:700 64px Georgia,serif;color:#d9b56a;letter-spacing:.02em}
+.vinyl small{display:block;font:400 22px Arial;letter-spacing:.3em;text-transform:uppercase;margin-top:6px}
+.sign{position:absolute;right:90px;top:38px;width:220px;height:84px;border:3px solid #d0312d;border-radius:10px;font:700 40px Arial;color:#d0312d;display:grid;place-items:center;letter-spacing:.12em;box-shadow:0 0 24px #d0312d88}
+.phone{position:absolute;left:90px;top:200px;width:340px;height:620px;background:#0b141a;border-radius:36px;border:10px solid #0d0d0d;padding:18px}
+.bub{border-radius:10px;padding:12px 14px;font-size:17px;margin:12px 0;max-width:86%}
+.out{background:#005c4b;margin-left:auto}.in{background:#202c33}
+.btns{display:flex;gap:6px;margin-top:8px}.btns span{flex:1;text-align:center;background:#2a3942;border-radius:8px;padding:8px;color:#53bdeb}
+.input{position:absolute;left:18px;right:18px;bottom:18px;background:#2a3942;border-radius:24px;padding:14px 18px;color:#8696a0}
+.paper{position:absolute;background:#fbfaf6;color:#111;padding:26px 28px;font:700 30px Arial;text-transform:uppercase;box-shadow:0 8px 18px #0006}
+.paper:before,.paper:after{content:"";position:absolute;top:-12px;width:80px;height:26px;background:#e9dfb8cc}
+.paper:before{left:-14px;transform:rotate(-30deg)}.paper:after{right:-14px;transform:rotate(30deg)}
+.p1{left:520px;top:210px;width:380px;transform:rotate(-2deg)}.p2{left:960px;top:250px;width:330px;transform:rotate(1.5deg);font-size:24px}
+.p2 em{display:block;font:400 22px 'Comic Sans MS',cursive;color:#1d3a8a;text-transform:none;margin-top:10px}
+.site{position:absolute;left:520px;top:470px;width:820px;height:360px;background:#fff;border-radius:8px;color:#222;padding:30px}
+.site h1{margin:0;font-size:42px}.site .row{display:flex;gap:8px;margin-top:24px}.site .row div{flex:1;height:54px;border-radius:6px;background:#eee}.site .row .now{background:#d0312d}
+.cap{position:absolute;left:90px;top:150px;font-size:20px;color:#f7f5ee}
+</style></head><body><div class="frame">
+<div class="vinyl">Pizzeria da Mario<small>orari · menu · avvisi</small></div>
+<div class="sign">APERTO</div>
+<div class="cap">Scrivi come al tuo collaboratore, su WhatsApp:</div>
+<div class="phone"><div class="bub out">Sabato chiudiamo alle 15</div><div class="bub in">Ecco cosa cambierà: sabato 31 ottobre 12:00–15:00<div class="btns"><span>Conferma</span><span>Annulla</span></div></div><div class="input">Scrivi un messaggio…</div></div>
+<div class="paper p1">Sabato 31 ottobre chiudiamo alle 15</div>
+<div class="paper p2">La carbonara è finita<em>– Mario</em></div>
+<div class="site"><h1>Pizzeria da Mario</h1><div>Oggi aperto 19:00–23:30</div><div class="row"><div></div><div></div><div></div><div></div><div></div><div class="now"></div><div></div></div></div>
+</div></body></html>
