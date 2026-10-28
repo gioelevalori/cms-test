@@ -54,8 +54,15 @@ export function App() {
 
   return (
     <div className="page">
-      <header className="top">
-        <p className="wordmark">cms-test</p>
+      <nav className="topnav" aria-label="Menu principale">
+        <a className="topnav-brand" href="#demo"><span className="topnav-mark" aria-hidden="true" />cms-test</a>
+        <div className="topnav-links">
+          <a href="#come-funziona">Come funziona</a>
+          <a href="#freelance">Per i freelance</a>
+        </div>
+        <a className="topnav-cta" href="#demo">Prova ora</a>
+      </nav>
+      <header className="top" id="demo">
         <div className="top-copy">
           <h1>Il sito della tua attività si aggiorna con un messaggio.</h1>
           <p>
@@ -81,6 +88,18 @@ export function App() {
         />
         <Site sample={sample} data={biz.data} today={today} />
       </div>
+
+      <section className="how" id="come-funziona" aria-labelledby="how-t">
+        <h2 id="how-t">Come funziona</h2>
+        <ol>
+          <li><strong>Scrivi cosa cambia</strong> su WhatsApp, come a un collaboratore.</li>
+          <li><strong>Guarda l'anteprima</strong> e conferma, oppure annulla.</li>
+          <li><strong>Il sito è aggiornato</strong>, insieme ai dati che legge Google.</li>
+        </ol>
+        <p id="freelance">
+          <strong>Per i freelance:</strong> costruisci il sito una volta, poi il cliente lo tiene aggiornato da solo scrivendo. Ogni cliente è una chat.
+        </p>
+      </section>
 
       <footer className="bottom">
         <p>Demo: attività e dati sono inventati, tutto resta nel tuo browser e nessun messaggio viene inviato.</p>
