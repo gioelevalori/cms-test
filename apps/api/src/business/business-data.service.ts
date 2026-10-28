@@ -1,9 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import type { BusinessData, PostKind, Weekday } from '@cms/shared';
+import type { BusinessData, PostKind, SiteSettings, Weekday } from '@cms/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 type Tx = Prisma.TransactionClient;
+
+/** Il vecchio tema aveva solo { primary }: diventa il colore del sito. */
+function siteFromTheme(theme: Prisma.JsonValue): SiteSettings {
+  const t = (theme && typeof theme === 'object' && !Array.isArray(theme) ? theme : {}) as SiteSettings & { primary?: string };
+  const { primary, ...site } = t;
+  return primary && !site.accent ? { ...site, accent: primary } : site;
+}
 
 /**
  * Legge e scrive i dati dell'attività come un unico oggetto BusinessData.
@@ -33,6 +40,7 @@ export class BusinessDataService {
       email: b.email,
       address: b.address,
       cover: b.coverUrl,
+      site: siteFromTheme(b.theme),
       photos: b.photos.map((p) => ({ id: p.id, url: p.url, caption: p.caption })),
       openingHours: b.openingHours.map((h) => ({ weekday: h.weekday as Weekday, opens: h.opens, closes: h.closes })),
       specialHours: b.specialHours.map((s) => ({ date: s.date, closed: s.closed, opens: s.opens, closes: s.closes, note: s.note })),
@@ -45,7 +53,9 @@ export class BusinessDataService {
   async save(tx: Tx, businessId: string, data: BusinessData): Promise<void> {
     await tx.business.update({
       where: { id: businessId },
-      data: { name: data.name, category: data.category, description: data.description, phone: data.phone, email: data.email, address: data.address, coverUrl: data.cover ?? null },
+      data: { name: data.name, category: data.category, description: data.description, phone: data.phone, email: data.email, address: data.address, coverUrl: data.cover ?? null,
+        // Gli snapshot salvati prima delle impostazioni del sito non le hanno: si lasciano com'erano.
+        ...(data.site ? { theme: data.site as Prisma.InputJsonValue } : {}) },
     });
     await tx.openingHours.deleteMany({ where: { businessId } });
     await tx.specialHours.deleteMany({ where: { businessId } });

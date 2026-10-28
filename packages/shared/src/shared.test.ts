@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretMessage, interpretPhoto, applyOps, describeOp, toSchemaOrg, nextWeekday, weekdayOf, isValidOp, CATEGORIES, categoryProfile, examplesFor, layoutFor, type BusinessData } from './index';
+import { interpretMessage, interpretPhoto, resolveSite, STRUCTURE_OPS, applyOps, describeOp, toSchemaOrg, nextWeekday, weekdayOf, isValidOp, CATEGORIES, categoryProfile, examplesFor, layoutFor, type BusinessData } from './index';
 
 // Martedì 27 ottobre 2026
 const TODAY = '2026-10-27';
@@ -225,4 +225,51 @@ test('foto: applyOps, anteprima, validità e dati salvati prima delle foto', () 
   const old = sample();
   delete old.photos;
   assert.equal(applyOps(old, [{ op: 'addPhoto', url: PHOTO, caption: '' }], ids).photos!.length, 1);
+});
+
+test('sito da messaggio: stile, colore, testi, sezioni e social', () => {
+  const ops = (msg: string) => interpretMessage(msg, sample(), TODAY).ops;
+  assert.deepEqual(ops('Stile elegante'), [{ op: 'setLook', look: 'atelier' }]);
+  assert.deepEqual(ops('Rendi il sito più scuro'), [{ op: 'setLook', look: 'energia' }]);
+  assert.deepEqual(ops('Metti il colore verde'), [{ op: 'setAccent', color: '#2f7d32' }]);
+  assert.deepEqual(ops('colore #1A2B3C'), [{ op: 'setAccent', color: '#1a2b3c' }]);
+  assert.deepEqual(ops('Slogan: la pizza più buona di Penne'), [{ op: 'setTagline', text: 'la pizza più buona di Penne' }]);
+  assert.deepEqual(ops('Punti di forza: forno a legna, impasto 48 ore e consegna a domicilio'), [
+    { op: 'setHighlights', items: ['forno a legna', 'impasto 48 ore', 'consegna a domicilio'] },
+  ]);
+  assert.deepEqual(ops('Nascondi la galleria'), [{ op: 'setSectionVisible', section: 'gallery', visible: false }]);
+  assert.deepEqual(ops('mostra gli orari'), [{ op: 'setSectionVisible', section: 'hours', visible: true }]);
+  assert.deepEqual(ops('Metti le foto in alto'), [{ op: 'moveSection', section: 'gallery', to: 'first' }]);
+  assert.deepEqual(ops('sposta il menu più giù'), [{ op: 'moveSection', section: 'catalog', to: 'down' }]);
+  assert.deepEqual(ops('Titolo menu: La nostra cucina'), [{ op: 'setSectionTitle', section: 'catalog', title: 'La nostra cucina' }]);
+  assert.deepEqual(ops('Instagram: @pizzeriamario'), [{ op: 'setLink', network: 'instagram', url: 'https://instagram.com/pizzeriamario' }]);
+  assert.deepEqual(ops('Il nostro facebook è facebook.com/pizzeriamario'), [{ op: 'setLink', network: 'facebook', url: 'https://facebook.com/pizzeriamario' }]);
+  assert.deepEqual(ops('togli instagram'), [{ op: 'setLink', network: 'instagram', url: null }]);
+  // Non deve rubare le frasi del menu.
+  assert.deepEqual(ops('Togli la carbonara'), [{ op: 'removeCatalogItem', itemId: 'c3' }]);
+});
+
+test('sito: applyOps, predefiniti per tipo, ordine delle sezioni e validità', () => {
+  assert.equal(resolveSite(sample()).look, 'trattoria');
+  assert.equal(resolveSite({ category: 'gym' }).look, 'energia');
+  let data = applyOps(sample(), [
+    { op: 'setLook', look: 'atelier' },
+    { op: 'setAccent', color: '#2F7D32' },
+    { op: 'moveSection', section: 'gallery', to: 'first' },
+    { op: 'setSectionVisible', section: 'posts', visible: false },
+    { op: 'setSectionTitle', section: 'catalog', title: 'La nostra cucina' },
+  ], ids);
+  const site = resolveSite(data);
+  assert.equal(site.look, 'atelier');
+  assert.equal(site.accent, '#2f7d32');
+  assert.equal(site.order[0], 'gallery');
+  assert.deepEqual(site.hidden, ['posts']);
+  assert.equal(site.titles.catalog, 'La nostra cucina');
+  data = applyOps(data, [{ op: 'moveSection', section: 'gallery', to: 'down' }, { op: 'setSectionTitle', section: 'catalog', title: '' }], ids);
+  assert.equal(resolveSite(data).order[1], 'gallery');
+  assert.equal(resolveSite(data).titles.catalog, 'Menu');
+  assert.equal(describeOp({ op: 'setAccent', color: '#2f7d32' }, data), 'Colore del sito: verde');
+  assert.equal(isValidOp({ op: 'setAccent', color: 'red' }), false);
+  assert.equal(isValidOp({ op: 'setLink', network: 'instagram', url: 'javascript:alert(1)' }), false);
+  assert.ok(STRUCTURE_OPS.includes('setLook') && !STRUCTURE_OPS.includes('setTagline'));
 });

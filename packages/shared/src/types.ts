@@ -1,3 +1,5 @@
+import type { SiteSettings } from './site';
+
 /**
  * Dati dell'attività: sono il cuore del CMS.
  * Il sito, la scheda Google e i dati schema.org sono solo modi diversi di mostrarli.
@@ -70,6 +72,8 @@ export interface BusinessData {
   cover?: string | null;
   /** Galleria, nell'ordine in cui si mostra. */
   photos?: Photo[];
+  /** Aspetto del sito: stile, colore, testi, sezioni, social. */
+  site?: SiteSettings;
   openingHours: OpeningHours[];
   specialHours: SpecialHours[];
   catalog: CatalogItem[];

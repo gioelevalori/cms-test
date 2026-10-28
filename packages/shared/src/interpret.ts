@@ -2,6 +2,7 @@ import type { BusinessData, CatalogItem, IsoDate, Time, TimeSlot, Weekday } from
 import { isPossibleSlot, type ChangeOp } from './operations';
 import { addDays, dateRange, nextWeekday, upcomingDate } from './dates';
 import { categoryProfile } from './categories';
+import { interpretSite } from './interpret-site';
 
 /**
  * Interprete a regole dei messaggi in italiano.
@@ -339,6 +340,7 @@ export function interpretMessage(message: string, data: BusinessData, today: Iso
     const result =
       interpretPost(text, clause, today) ??
       interpretContact(text, clause) ??
+      interpretSite(text, clause, data) ??
       interpretCatalog(text, clause, data) ??
       interpretHours(text, clause, data, today);
     if (result && result.length) ops.push(...result);

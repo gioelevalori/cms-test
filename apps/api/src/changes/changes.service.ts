@@ -1,7 +1,7 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
-import { applyOps, describeOp, interpretPhoto, isValidOp, todayIn, type BusinessData, type ChangeOp } from '@cms/shared';
+import { STRUCTURE_OPS, applyOps, canEditStructure, describeOp, interpretPhoto, isValidOp, todayIn, type BusinessData, type ChangeOp } from '@cms/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { BusinessDataService } from '../business/business-data.service';
 import { MembershipService } from '../business/membership.service';
@@ -59,6 +59,9 @@ export class ChangesService {
   }
 
   private async createProposal(tx: Prisma.TransactionClient, userId: string, businessId: string, source: string, message: string | null, before: BusinessData, ops: ChangeOp[]) {
+    if (ops.some((o) => STRUCTURE_OPS.includes(o.op)) && !canEditStructure(await this.membership.roleOf(userId, businessId, tx))) {
+      throw new ForbiddenException("Stile, colore e sezioni del sito li cambia chi l'ha costruito. Testi, foto e social puoi cambiarli tu.");
+    }
     let after: BusinessData;
     try {
       after = applyOps(before, ops, randomUUID);

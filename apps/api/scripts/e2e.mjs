@@ -399,6 +399,35 @@ await step('foto da WhatsApp: con "copertina" nella didascalia diventa la copert
   assert.equal(uploads.length, 2);
 });
 
+await step('aspetto del sito da WhatsApp: stile, colore e sezioni con anteprima, poi sul sito', async () => {
+  // Il numero di prova aggiorna lo studio creato dal costruttore: può cambiarne la veste.
+  const p = await send([textMsg('Stile elegante. Colore verde. Nascondi la galleria. Slogan: Consulenze su appuntamento')]);
+  assert.match(p.interactive.body.text, /Stile del sito: Elegante[\s\S]*Colore del sito: verde[\s\S]*Nascondi la sezione “Foto”[\s\S]*Consulenze su appuntamento/);
+  await send([buttonMsg(p.interactive.action.buttons[0].reply.id)]);
+  const studio = (await call('GET', '/businesses', { token: builder })).body.find((b) => b.name === 'Studio Rossi');
+  const site = (await call('GET', `/public/businesses/${studio.slug}`)).body.data.site;
+  assert.equal(site.look, 'atelier');
+  assert.equal(site.accent, '#2f7d32');
+  assert.deepEqual(site.hidden, ['gallery']);
+  assert.equal(site.tagline, 'Consulenze su appuntamento');
+});
+
+await step('aspetto del sito: il cliente cambia testi e social, non stile e sezioni', async () => {
+  const forbidden = await call('POST', `/businesses/${businessId}/changes`, { token: client, body: { ops: [{ op: 'setLook', look: 'energia' }] } });
+  assert.equal(forbidden.status, 403);
+  assert.match(forbidden.body.message, /chi l'ha costruito/);
+  const ok = await call('POST', `/businesses/${businessId}/changes`, { token: client, body: { ops: [
+    { op: 'setTagline', text: 'Forno a legna dal 1985' }, { op: 'setLink', network: 'instagram', url: 'https://instagram.com/pizzeriamario' },
+  ] } });
+  assert.equal(ok.status, 201, JSON.stringify(ok.body));
+  assert.equal((await call('POST', `/changes/${ok.body.id}/confirm`, { token: client })).status, 201);
+  const site = (await publicSite()).data.site;
+  assert.equal(site.tagline, 'Forno a legna dal 1985');
+  assert.equal(site.links.instagram, 'https://instagram.com/pizzeriamario');
+  // Il vecchio tema { primary } resta il colore del sito.
+  assert.equal(site.accent, '#c2410c');
+});
+
 graph.close();
 cloudinary.close();
 console.log(`\n${passed} controlli superati`);

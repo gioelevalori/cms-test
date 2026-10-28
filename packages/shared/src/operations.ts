@@ -4,6 +4,7 @@ import type { BusinessData, CatalogItem, IsoDate, Post, PostKind, Time, TimeSlot
 export const isPhotoUrl = (v: unknown): v is string =>
   typeof v === 'string' && v.length <= 500 && /^https:\/\/res\.cloudinary\.com\/[\w-]+\/image\/upload\/\S+$/.test(v);
 import { WEEKDAY_NAMES } from './types';
+import { COLORS, LINKS, LOOKS, SECTIONS, isHexColor, resolveSite, type LinkId, type LookId, type SectionId } from './site';
 import { formatDateIt } from './dates';
 
 /**
@@ -23,7 +24,22 @@ export type ChangeOp =
   | { op: 'setCover'; url: string | null }
   | { op: 'addPhoto'; url: string; caption: string }
   | { op: 'removePhoto'; photoId: string }
-  | { op: 'setItemImage'; itemId: string; url: string | null };
+  | { op: 'setItemImage'; itemId: string; url: string | null }
+  | { op: 'setLook'; look: LookId }
+  | { op: 'setAccent'; color: string }
+  | { op: 'setTagline'; text: string }
+  | { op: 'setHighlights'; items: string[] }
+  | { op: 'setSectionVisible'; section: SectionId; visible: boolean }
+  | { op: 'moveSection'; section: SectionId; to: 'first' | 'last' | 'up' | 'down' }
+  | { op: 'setSectionTitle'; section: SectionId; title: string }
+  | { op: 'setLink'; network: LinkId; url: string | null };
+
+/**
+ * Operazioni sulla veste del sito (stile, colore, sezioni): solo chi ne decide la struttura,
+ * cioè il titolare che l'ha creato o il costruttore. I testi e i social li cambia anche il cliente.
+ */
+export const STRUCTURE_OPS: ChangeOp['op'][] = ['setLook', 'setAccent', 'setSectionVisible', 'moveSection', 'setSectionTitle'];
+const isSection = (v: unknown): v is SectionId => SECTIONS.some((s) => s.id === v);
 
 export type IdGenerator = () => string;
 
@@ -76,6 +92,22 @@ export function isValidOp(value: unknown): value is ChangeOp {
       return isStr(o.photoId, 100);
     case 'setItemImage':
       return isStr(o.itemId, 100) && (o.url === null || isPhotoUrl(o.url));
+    case 'setLook':
+      return LOOKS.some((l) => l.id === o.look);
+    case 'setAccent':
+      return isHexColor(o.color);
+    case 'setTagline':
+      return isStr(o.text, 160);
+    case 'setHighlights':
+      return Array.isArray(o.items) && o.items.length <= 3 && o.items.every((i) => isStr(i, 80) && i.length > 0);
+    case 'setSectionVisible':
+      return isSection(o.section) && typeof o.visible === 'boolean';
+    case 'moveSection':
+      return isSection(o.section) && ['first', 'last', 'up', 'down'].includes(o.to as string);
+    case 'setSectionTitle':
+      return isSection(o.section) && isStr(o.title, 60);
+    case 'setLink':
+      return LINKS.some((l) => l.id === o.network) && (o.url === null || (isStr(o.url, 300) && /^https:\/\/\S+$/.test(o.url as string)));
     default:
       return false;
   }
@@ -140,9 +172,58 @@ export function applyOps(input: BusinessData, ops: ChangeOp[], newId: IdGenerato
       case 'setItemImage':
         findItem(data, op.itemId).image = op.url;
         break;
+      default:
+        data.site = applySiteOp(data, op);
     }
   }
   return data;
+}
+
+/** Le operazioni sulla veste del sito, applicate alle impostazioni (copiate, mai modificate sul posto). */
+function applySiteOp(data: BusinessData, op: ChangeOp): BusinessData['site'] {
+  const site = { ...data.site };
+  switch (op.op) {
+    case 'setLook':
+      site.look = op.look;
+      break;
+    case 'setAccent':
+      site.accent = op.color.toLowerCase();
+      break;
+    case 'setTagline':
+      site.tagline = op.text.trim();
+      break;
+    case 'setHighlights':
+      site.highlights = op.items.map((i) => i.trim());
+      break;
+    case 'setSectionVisible': {
+      const hidden = (site.hidden ?? []).filter((s) => s !== op.section);
+      site.hidden = op.visible ? hidden : [...hidden, op.section];
+      break;
+    }
+    case 'moveSection': {
+      const order = resolveSite(data).order.filter((s) => s !== op.section);
+      const at = resolveSite(data).order.indexOf(op.section);
+      const to = { first: 0, last: order.length, up: Math.max(0, at - 1), down: Math.min(order.length, at + 1) }[op.to];
+      order.splice(to, 0, op.section);
+      site.order = order;
+      break;
+    }
+    case 'setSectionTitle': {
+      const titles = { ...site.titles };
+      if (op.title.trim()) titles[op.section] = op.title.trim();
+      else delete titles[op.section];
+      site.titles = titles;
+      break;
+    }
+    case 'setLink': {
+      const links = { ...site.links };
+      if (op.url) links[op.network] = op.url;
+      else delete links[op.network];
+      site.links = links;
+      break;
+    }
+  }
+  return site;
 }
 
 const euro = (n: number) => `${n.toFixed(2).replace('.', ',')} €`;
@@ -189,6 +270,28 @@ export function describeOp(op: ChangeOp, data: BusinessData): string {
     }
     case 'setItemImage':
       return `${itemName(op.itemId)}: ${op.url ? 'nuova foto' : 'togli la foto'}`;
+    case 'setLook':
+      return `Stile del sito: ${LOOKS.find((l) => l.id === op.look)?.label ?? op.look}`;
+    case 'setAccent': {
+      const name = Object.entries(COLORS).find(([, hex]) => hex === op.color.toLowerCase())?.[0];
+      return `Colore del sito: ${name ?? op.color}`;
+    }
+    case 'setTagline':
+      return op.text.trim() ? `Frase sotto il nome: “${op.text.trim()}”` : 'Togli la frase sotto il nome';
+    case 'setHighlights':
+      return op.items.length ? `Punti di forza: ${op.items.join(', ')}` : 'Togli i punti di forza';
+    case 'setSectionVisible':
+      return `${op.visible ? 'Mostra' : 'Nascondi'} la sezione “${resolveSite(data).titles[op.section]}”`;
+    case 'moveSection':
+      return `Sposta “${resolveSite(data).titles[op.section]}” ${{ first: 'in alto', last: 'in fondo', up: 'più su', down: 'più giù' }[op.to]}`;
+    case 'setSectionTitle':
+      return op.title.trim()
+        ? `Titolo della sezione “${resolveSite(data).titles[op.section]}”: ${op.title.trim()}`
+        : `Titolo predefinito per “${resolveSite(data).titles[op.section]}”`;
+    case 'setLink': {
+      const label = LINKS.find((l) => l.id === op.network)?.label ?? op.network;
+      return op.url ? `${label}: ${op.url}` : `Togli il link a ${label}`;
+    }
   }
 }
 

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CATEGORIES, canEditStructure, examplesFor, type ChangeOp, type PageBlock } from '@cms/shared';
+import { CATEGORIES, canEditStructure, examplesFor, type ChangeOp } from '@cms/shared';
 import { api, SITE_URL, type Change } from '../api/client';
 import { Chat } from '../components/Chat';
 import { BusinessDataView } from '../components/BusinessData';
 import { History } from '../components/History';
-import { LayoutEditor } from '../components/LayoutEditor';
+import { SiteCard } from '../components/SiteCard';
 import { WhatsAppCard } from '../components/WhatsAppCard';
 import { Photos } from '../components/Photos';
 
@@ -16,7 +16,6 @@ export function BusinessPage() {
   const business = useQuery({ queryKey: ['business', businessId], queryFn: () => api.business(businessId) });
   const changes = useQuery({ queryKey: ['changes', businessId], queryFn: () => api.changes(businessId) });
   const isBuilder = business.data ? canEditStructure(business.data.role) : false;
-  const pages = useQuery({ queryKey: ['pages', businessId], queryFn: () => api.pages(businessId), enabled: isBuilder });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,16 +49,7 @@ export function BusinessPage() {
       throw err;
     }
   };
-  const saveLayout = (layout: PageBlock[]) =>
-    run(async () => {
-      await api.savePage(businessId, 'home', layout);
-      qc.invalidateQueries({ queryKey: ['pages', businessId] });
-    });
-  const setCategory = (category: string) =>
-    run(async () => {
-      await api.setCategory(businessId, category);
-      qc.invalidateQueries({ queryKey: ['pages', businessId] });
-    });
+  const setCategory = (category: string) => run(() => api.setCategory(businessId, category));
 
   if (business.isLoading) return <p className="container">Caricamento…</p>;
   if (business.error) return <p className="container error">{(business.error as Error).message}</p>;
@@ -89,9 +79,9 @@ export function BusinessPage() {
           <Chat businessId={businessId} examples={examplesFor(b.data)} onApplied={refresh} />
           <WhatsAppCard businessId={businessId} businessName={b.data.name} example={examplesFor(b.data)[0]} />
           <History changes={changes.data ?? []} onUndo={undo} busy={busy} />
-          {isBuilder && pages.data?.[0] && <LayoutEditor page={pages.data[0]} onSave={saveLayout} busy={busy} />}
         </div>
         <div className="col">
+          <SiteCard data={b.data} canStructure={isBuilder} busy={busy} onOps={applyOps} />
           <Photos data={b.data} busy={busy} upload={upload} onOps={applyOps} />
           <BusinessDataView data={b.data} onOps={applyOps} busy={busy} upload={upload} />
         </div>
