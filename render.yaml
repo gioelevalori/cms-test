@@ -51,6 +51,9 @@ services:
         value: "22"
       - key: API_URL
         sync: false
+      # Indirizzi del pannello che possono aprire l'editor (predefinito nel codice: cms-test-admin.onrender.com)
+      - key: ADMIN_ORIGIN
+        sync: false
 
   - type: web
     name: cms-test-admin

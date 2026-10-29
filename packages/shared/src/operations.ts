@@ -32,6 +32,10 @@ export type ChangeOp =
   | { op: 'setHighlights'; items: string[] }
   | { op: 'setSectionVisible'; section: SectionId; visible: boolean }
   | { op: 'moveSection'; section: SectionId; to: 'first' | 'last' | 'up' | 'down' }
+  /** Ordine completo delle sezioni, dall'editor a trascinamento. */
+  | { op: 'setSectionOrder'; order: SectionId[] }
+  /** Ordine delle foto della galleria (tutte, ognuna una volta). */
+  | { op: 'setPhotoOrder'; photoIds: string[] }
   | { op: 'setSectionTitle'; section: SectionId; title: string }
   | { op: 'setLink'; network: LinkId; url: string | null };
 
@@ -39,7 +43,7 @@ export type ChangeOp =
  * Operazioni sulla veste del sito (stile, colore, sezioni): solo chi ne decide la struttura,
  * cioè il titolare che l'ha creato o il costruttore. I testi e i social li cambia anche il cliente.
  */
-export const STRUCTURE_OPS: ChangeOp['op'][] = ['setLook', 'setAccent', 'setSectionVisible', 'moveSection', 'setSectionTitle'];
+export const STRUCTURE_OPS: ChangeOp['op'][] = ['setLook', 'setAccent', 'setSectionVisible', 'moveSection', 'setSectionOrder', 'setSectionTitle'];
 const isSection = (v: unknown): v is SectionId => SECTIONS.some((s) => s.id === v);
 
 export type IdGenerator = () => string;
@@ -106,6 +110,10 @@ export function isValidOp(value: unknown): value is ChangeOp {
       return isSection(o.section) && typeof o.visible === 'boolean';
     case 'moveSection':
       return isSection(o.section) && ['first', 'last', 'up', 'down'].includes(o.to as string);
+    case 'setSectionOrder':
+      return Array.isArray(o.order) && o.order.length <= SECTIONS.length && o.order.every(isSection) && new Set(o.order).size === o.order.length;
+    case 'setPhotoOrder':
+      return Array.isArray(o.photoIds) && o.photoIds.length <= 200 && o.photoIds.every((id) => isStr(id, 100)) && new Set(o.photoIds).size === o.photoIds.length;
     case 'setSectionTitle':
       return isSection(o.section) && isStr(o.title, 60);
     case 'setLink':
@@ -177,6 +185,13 @@ export function applyOps(input: BusinessData, ops: ChangeOp[], newId: IdGenerato
       case 'setItemImage':
         findItem(data, op.itemId).image = op.url;
         break;
+      case 'setPhotoOrder': {
+        const photos = data.photos ?? [];
+        // Deve elencare esattamente le foto che ci sono: niente foto perse o inventate.
+        if (op.photoIds.length !== photos.length || !photos.every((p) => op.photoIds.includes(p.id))) throw new Error('Ordine delle foto non valido');
+        data.photos = op.photoIds.map((id) => photos.find((p) => p.id === id)!);
+        break;
+      }
       default:
         data.site = applySiteOp(data, op);
     }
@@ -213,6 +228,10 @@ function applySiteOp(data: BusinessData, op: ChangeOp): BusinessData['site'] {
       site.order = order;
       break;
     }
+    case 'setSectionOrder':
+      // Le sezioni non elencate restano in coda nell'ordine predefinito (vedi resolveSite).
+      site.order = [...op.order];
+      break;
     case 'setSectionTitle': {
       const titles = { ...site.titles };
       if (op.title.trim()) titles[op.section] = op.title.trim();
@@ -291,6 +310,12 @@ export function describeOp(op: ChangeOp, data: BusinessData): string {
       return `${op.visible ? 'Mostra' : 'Nascondi'} la sezione “${resolveSite(data).titles[op.section]}”`;
     case 'moveSection':
       return `Sposta “${resolveSite(data).titles[op.section]}” ${{ first: 'in alto', last: 'in fondo', up: 'più su', down: 'più giù' }[op.to]}`;
+    case 'setSectionOrder': {
+      const titles = resolveSite(data).titles;
+      return `Nuovo ordine delle sezioni: ${op.order.map((s) => titles[s]).join(', ')}`;
+    }
+    case 'setPhotoOrder':
+      return 'Nuovo ordine delle foto della galleria';
     case 'setSectionTitle':
       return op.title.trim()
         ? `Titolo della sezione “${resolveSite(data).titles[op.section]}”: ${op.title.trim()}`

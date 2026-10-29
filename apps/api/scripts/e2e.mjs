@@ -450,6 +450,31 @@ await step('aspetto del sito: il cliente cambia testi e social, non stile e sezi
   assert.equal(site.accent, '#c2410c');
 });
 
+await step('editor: la bozza si pubblica in una modifica sola (ordine di sezioni e foto), il cliente non riordina le sezioni', async () => {
+  const order = ['gallery', 'catalog', 'hours'];
+  const forbidden = await call('POST', `/businesses/${businessId}/changes`, { token: client, body: { ops: [{ op: 'setSectionOrder', order }] } });
+  assert.equal(forbidden.status, 403);
+  const before = (await publicSite()).data;
+  const photoIds = before.photos.map((p) => p.id);
+  // Una seconda foto per avere qualcosa da riordinare.
+  const add = await call('POST', `/businesses/${businessId}/changes`, { token: builder, body: { ops: [{ op: 'addPhoto', url: before.photos[0].url, caption: 'Il forno' }] } });
+  assert.equal((await call('POST', `/changes/${add.body.id}/confirm`, { token: builder })).status, 201);
+  const ids = (await publicSite()).data.photos.map((p) => p.id);
+  assert.equal(ids.length, photoIds.length + 1);
+  const p = await call('POST', `/businesses/${businessId}/changes`, { token: builder, body: { ops: [
+    { op: 'setSectionOrder', order }, { op: 'setPhotoOrder', photoIds: [...ids].reverse() }, { op: 'setSectionVisible', section: 'gallery', visible: true },
+  ] } });
+  assert.equal(p.status, 201, JSON.stringify(p.body));
+  assert.match(p.body.summary.join(' | '), /Nuovo ordine delle sezioni: Foto, Menu, Orari \| Nuovo ordine delle foto/);
+  assert.equal((await call('POST', `/changes/${p.body.id}/confirm`, { token: builder })).status, 201);
+  const after = (await publicSite()).data;
+  assert.deepEqual(after.site.order.slice(0, 3), order);
+  assert.deepEqual(after.photos.map((x) => x.id), [...ids].reverse());
+  // Un ordine delle foto che ne perde una è rifiutato.
+  const bad = await call('POST', `/businesses/${businessId}/changes`, { token: builder, body: { ops: [{ op: 'setPhotoOrder', photoIds: ids.slice(1) }] } });
+  assert.equal(bad.status, 400);
+});
+
 graph.close();
 cloudinary.close();
 console.log(`\n${passed} controlli superati`);

@@ -7,13 +7,21 @@ interface Props {
   canStructure: boolean;
   busy: boolean;
   onOps: (ops: ChangeOp[]) => void;
+  /** Quali parti mostrare (l'editor a tutto schermo le divide nei suoi pannelli). Predefinito: tutte. */
+  parts?: Part[];
+  /** Senza riquadro né titolo, dentro un pannello dell'editor. */
+  bare?: boolean;
 }
+
+type Part = 'look' | 'texts' | 'sections' | 'social';
+const ALL_PARTS: Part[] = ['look', 'texts', 'sections', 'social'];
 
 // Un campione per tinta, senza doppioni (oro e giallo hanno lo stesso colore).
 const SWATCHES = Object.entries(COLORS).filter(([, hex], i, all) => all.findIndex(([, h]) => h === hex) === i);
 
 /** Aspetto del sito: ogni scelta è una modifica normale, quindi compare in cronologia e si annulla. */
-export function SiteCard({ data, canStructure, busy, onOps }: Props) {
+export function SiteCard({ data, canStructure, busy, onOps, parts = ALL_PARTS, bare = false }: Props) {
+  const show = (p: Part) => parts.includes(p);
   const site = resolveSite(data);
   const [tagline, setTagline] = useState(site.tagline);
   const [highlights, setHighlights] = useState(() => [0, 1, 2].map((i) => site.highlights[i] ?? ''));
@@ -39,10 +47,10 @@ export function SiteCard({ data, canStructure, busy, onOps }: Props) {
   const move = (section: SectionId, to: 'up' | 'down') => onOps([{ op: 'moveSection', section, to }]);
 
   return (
-    <section className="card site-card">
-      <h2>Aspetto del sito</h2>
+    <section className={bare ? 'site-card is-bare' : 'card site-card'}>
+      {!bare && <h2>Aspetto del sito</h2>}
 
-      {canStructure && (
+      {canStructure && show('look') && (
         <>
           <h3>Stile</h3>
           <div className="look-grid" role="group" aria-label="Stile del sito">
@@ -85,6 +93,7 @@ export function SiteCard({ data, canStructure, busy, onOps }: Props) {
         </>
       )}
 
+      {show('texts') && (<>
       <h3>Testi</h3>
       <label>
         Frase sotto il nome
@@ -109,8 +118,9 @@ export function SiteCard({ data, canStructure, busy, onOps }: Props) {
           <button className="small" disabled={busy} onClick={() => onOps([{ op: 'setHighlights', items: savedHighlights }])}>Salva i punti di forza</button>
         )}
       </fieldset>
+      </>)}
 
-      {canStructure && (
+      {canStructure && show('sections') && (
         <>
           <h3>Sezioni</h3>
           <ol className="section-list">
@@ -142,6 +152,7 @@ export function SiteCard({ data, canStructure, busy, onOps }: Props) {
         </>
       )}
 
+      {show('social') && (<>
       <h3>Social</h3>
       <div className="links">
         {LINKS.map((l) => (
@@ -159,17 +170,18 @@ export function SiteCard({ data, canStructure, busy, onOps }: Props) {
         ))}
       </div>
       {linkError && <p className="error">{linkError}</p>}
+      </>)}
 
-      <p className="hint">
+      {!bare && <p className="hint">
         Anche da WhatsApp: “stile elegante”, “colore verde”, “slogan: …”, “nascondi la galleria”, “metti le foto in alto”, “instagram: @nome”.
         {!canStructure && ' Stile, colore e sezioni li sceglie chi ha costruito il sito.'}
-      </p>
+      </p>}
     </section>
   );
 }
 
 /** Titolo di una sezione, modificabile sul posto: si salva uscendo dal campo o con Invio. */
-function SectionTitle({ title, fallback, disabled, onSave }: { title: string; fallback: string; disabled: boolean; onSave: (t: string) => void }) {
+export function SectionTitle({ title, fallback, disabled, onSave }: { title: string; fallback: string; disabled: boolean; onSave: (t: string) => void }) {
   const [value, setValue] = useState(title);
   useEffect(() => setValue(title), [title]);
   const save = () => value.trim() !== title && onSave(value.trim());

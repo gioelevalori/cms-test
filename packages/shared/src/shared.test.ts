@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretMessage, interpretPhoto, resolveSite, STRUCTURE_OPS, applyOps, describeOp, toSchemaOrg, nextWeekday, weekdayOf, isValidOp, CATEGORIES, categoryProfile, examplesFor, layoutFor, openStatus, timeIn, type BusinessData } from './index';
+import { interpretMessage, interpretPhoto, resolveSite, STRUCTURE_OPS, applyOps, describeOp, toSchemaOrg, nextWeekday, weekdayOf, isValidOp, CATEGORIES, categoryProfile, examplesFor, layoutFor, openStatus, timeIn, compactOps, reorderVisible, moveInList, type BusinessData } from './index';
 
 // Martedì 27 ottobre 2026
 const TODAY = '2026-10-27';
@@ -313,4 +313,45 @@ test('logo: didascalia, applyOps, validità, schema.org', () => {
   assert.equal(isValidOp({ op: 'setLogo', url: null }), true);
   assert.equal(toSchemaOrg(data, 'https://example.com/x').logo, LOGO);
   assert.equal(applyOps(data, [{ op: 'setLogo', url: null }], ids).logo, null);
+});
+
+test('editor: ordine di sezioni e foto, bozza compatta', () => {
+  assert.equal(isValidOp({ op: 'setSectionOrder', order: ['gallery', 'catalog'] }), true);
+  assert.equal(isValidOp({ op: 'setSectionOrder', order: ['gallery', 'gallery'] }), false);
+  assert.equal(isValidOp({ op: 'setSectionOrder', order: ['nope'] }), false);
+  assert.ok(STRUCTURE_OPS.includes('setSectionOrder'));
+  const d = applyOps(sample(), [{ op: 'setSectionOrder', order: ['gallery', 'hours'] }], ids);
+  assert.deepEqual(resolveSite(d).order.slice(0, 3), ['gallery', 'hours', 'highlights']);
+
+  const P = (n: number) => `https://res.cloudinary.com/demo/image/upload/v1/cms/p${n}.jpg`;
+  const withPhotos = { ...sample(), photos: [{ id: 'a', url: P(1), caption: '' }, { id: 'b', url: P(2), caption: '' }] };
+  assert.deepEqual(applyOps(withPhotos, [{ op: 'setPhotoOrder', photoIds: ['b', 'a'] }], ids).photos!.map((p) => p.id), ['b', 'a']);
+  assert.throws(() => applyOps(withPhotos, [{ op: 'setPhotoOrder', photoIds: ['b'] }], ids));
+
+  const ops = compactOps([
+    { op: 'setAccent', color: '#2448d8' },
+    { op: 'moveSection', section: 'gallery', to: 'up' },
+    { op: 'setSectionOrder', order: ['hours'] },
+    { op: 'setAccent', color: '#b42318' },
+    { op: 'setSectionOrder', order: ['gallery'] },
+    { op: 'addPhoto', url: P(3), caption: '' },
+  ]);
+  assert.deepEqual(ops, [
+    { op: 'setAccent', color: '#b42318' },
+    { op: 'setSectionOrder', order: ['gallery'] },
+    { op: 'addPhoto', url: P(3), caption: '' },
+  ]);
+  assert.equal(describeOp({ op: 'setSectionOrder', order: ['gallery', 'hours'] }, sample()), 'Nuovo ordine delle sezioni: Foto, Orari');
+});
+
+test('editor: trascinare tra le sezioni visibili non sposta quelle nascoste', () => {
+  // "about" è nascosta: resta al suo posto.
+  assert.deepEqual(
+    reorderVisible(['highlights', 'catalog', 'about', 'hours', 'gallery'], ['gallery', 'highlights', 'catalog', 'hours']),
+    ['gallery', 'highlights', 'about', 'catalog', 'hours'],
+  );
+  // Indice di arrivo = posizione tra gli elementi di partenza (prima dello spostamento).
+  assert.deepEqual(moveInList(['a', 'b', 'c', 'd'], 0, 3), ['b', 'c', 'a', 'd']);
+  assert.deepEqual(moveInList(['a', 'b', 'c', 'd'], 3, 0), ['d', 'a', 'b', 'c']);
+  assert.deepEqual(moveInList(['a', 'b', 'c', 'd'], 1, 4), ['a', 'c', 'd', 'b']);
 });

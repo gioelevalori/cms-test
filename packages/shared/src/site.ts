@@ -135,3 +135,18 @@ export function linkUrl(network: LinkId, value: string): string | null {
   if (!/^[\w.]{1,60}$/.test(handle)) return null;
   return { instagram: `https://instagram.com/${handle}`, facebook: `https://facebook.com/${handle}`, tiktok: `https://tiktok.com/@${handle}` }[network];
 }
+
+/** Una sezione ha qualcosa da mostrare? Le vuote non compaiono sul sito, così non ci sono buchi. */
+export function sectionHasContent(data: BusinessData, id: SectionId): boolean {
+  const site = resolveSite(data);
+  switch (id) {
+    case 'highlights': return site.highlights.length > 0;
+    case 'catalog': return data.catalog.length > 0;
+    // Senza frase scelta, la descrizione va sotto il nome e "Chi siamo" non la ripete.
+    case 'about': return Boolean(site.tagline && data.description);
+    case 'hours': return data.openingHours.length > 0 || data.specialHours.length > 0;
+    case 'posts': return data.posts.length > 0;
+    case 'gallery': return (data.photos ?? []).length > 0;
+    case 'where': return Boolean(data.address);
+  }
+}

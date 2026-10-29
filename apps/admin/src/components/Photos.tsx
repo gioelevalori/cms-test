@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { photoUrl, type BusinessData, type ChangeOp } from '@cms/shared';
+import { useDragSort } from './useDragSort';
 
 interface Props {
   data: BusinessData;
@@ -7,14 +8,17 @@ interface Props {
   /** Carica il file e restituisce l'URL. */
   upload: (file: File) => Promise<string>;
   onOps: (ops: ChangeOp[]) => void;
+  /** Senza riquadro né titolo, dentro un pannello dell'editor. */
+  bare?: boolean;
 }
 
 /** Logo, copertina e galleria del sito. Ogni foto entra con una modifica normale, quindi si può annullare. */
-export function Photos({ data, busy, upload, onOps }: Props) {
+export function Photos({ data, busy, upload, onOps, bare = false }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const photos = data.photos ?? [];
   const disabled = busy || uploading;
+  const sort = useDragSort(photos, (p) => p.id, (next) => onOps([{ op: 'setPhotoOrder', photoIds: next.map((p) => p.id) }]), 'x');
 
   async function add(files: File[], toOps: (urls: string[]) => ChangeOp[]) {
     if (!files.length) return;
@@ -32,8 +36,8 @@ export function Photos({ data, busy, upload, onOps }: Props) {
   }
 
   return (
-    <section className="card photos">
-      <h2>Logo e foto</h2>
+    <section className={bare ? 'photos is-bare' : 'card photos'}>
+      {!bare && <h2>Logo e foto</h2>}
 
       <h3>Logo</h3>
       <div className="cover-row">
@@ -67,14 +71,15 @@ export function Photos({ data, busy, upload, onOps }: Props) {
       <h3>Galleria</h3>
       {photos.length > 0 && (
         <ul className="gallery-grid">
-          {photos.map((p) => (
-            <li key={p.id}>
+          {photos.map((p, i) => (
+            <li key={p.id} {...sort.itemProps(p, i)} title="Trascina per cambiare l'ordine">
               <img src={photoUrl(p.url, { w: 240, h: 240 })} alt={p.caption || 'Foto della galleria'} />
               <button className="remove" disabled={disabled} onClick={() => onOps([{ op: 'removePhoto', photoId: p.id }])} aria-label={`Togli la foto ${p.caption}`}>×</button>
             </li>
           ))}
         </ul>
       )}
+      {photos.length > 1 && <p className="hint">Trascina le foto per cambiarne l'ordine sul sito.</p>}
       <FilePick label="Aggiungi foto" multiple disabled={disabled} onFiles={(f) => add(f, (urls) => urls.map((url) => ({ op: 'addPhoto', url, caption: '' })))} />
       {uploading && <p className="hint">Caricamento…</p>}
       <p className="hint">Anche da WhatsApp: manda una foto, con "copertina" o il nome di una voce nella didascalia.</p>

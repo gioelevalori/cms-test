@@ -313,3 +313,109 @@ button.link:hover:not(:disabled) { background: none; text-decoration: underline;
   .biz-layout { grid-template-columns: minmax(0, 1fr) 360px; }
   .biz-layout .new-business { position: sticky; top: 24px; }
 }
+
+.topbar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ===== Editor a tutto schermo (come la personalizzazione di WordPress) ===== */
+.editor {
+  --wp: #3858e9; --wp-deep: #2145e6; --bar: #1e1e1e; --side-w: 340px;
+  position: fixed; inset: 0; display: grid; grid-template-rows: 56px minmax(0, 1fr); grid-template-columns: var(--side-w) minmax(0, 1fr);
+  background: #f0f0f1;
+}
+.editor.no-sidebar { grid-template-columns: 0 minmax(0, 1fr); }
+.editor-top { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 0; background: var(--bar); color: #fff; }
+.editor-exit { display: inline-flex; align-items: center; gap: 6px; align-self: stretch; padding: 0 16px; background: #000; color: #fff; font-weight: 600; font-size: 14px; }
+.editor-exit:hover { background: var(--wp); }
+.editor-name { margin: 0 12px 0 4px; overflow: hidden; font-weight: 600; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; }
+.editor-icon { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 6px; background: transparent; color: inherit; }
+.editor-top .editor-icon:hover:not(:disabled) { background: rgb(255 255 255 / .12); }
+.editor-top .editor-icon[aria-pressed='true'] { background: rgb(255 255 255 / .14); }
+.editor-top .editor-icon:disabled { opacity: .35; }
+.editor-devices { display: flex; gap: 2px; margin: 0 auto; padding: 3px; border-radius: 8px; background: rgb(255 255 255 / .08); }
+.editor-devices button { display: grid; place-items: center; width: 36px; height: 30px; padding: 0; border-radius: 6px; background: transparent; color: #c3c4c7; }
+.editor-devices button:hover:not(:disabled) { background: rgb(255 255 255 / .12); color: #fff; }
+.editor-devices button[aria-pressed='true'] { background: #fff; color: var(--bar); }
+.editor-actions { display: flex; align-items: center; gap: 6px; }
+.editor-state { margin: 0 6px; color: #c3c4c7; font-size: 13px; white-space: nowrap; }
+.editor-top button.ghost { border-color: rgb(255 255 255 / .25); color: #fff; }
+.editor-top button.ghost:hover:not(:disabled) { background: rgb(255 255 255 / .1); color: #fff; }
+.editor-top button.danger { color: #ff8a80; }
+.editor-confirm { display: inline-flex; gap: 4px; }
+.editor-publish { padding: 8px 18px; border-radius: 6px; background: var(--wp); font-size: 14px; }
+.editor-publish:hover:not(:disabled) { background: var(--wp-deep) !important; }
+.editor-publish:disabled { opacity: 1; background: #50575e; color: #a7aaad; }
+
+.editor-side { position: relative; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; border-right: 1px solid #dcdcde; background: #fff; }
+.editor.no-sidebar .editor-side { display: none; }
+.editor-back { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin: 14px 16px 0; padding: 4px 8px 4px 4px; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 13px; }
+.editor-back:hover:not(:disabled) { background: var(--panel-soft); color: var(--ink); }
+.editor-panel-title { margin: 10px 20px 12px; font-size: 20px; letter-spacing: -.02em; }
+.editor-panel { display: flex; flex-direction: column; gap: 12px; padding: 0 20px 24px; }
+.editor-lead { margin: 0; }
+.editor-msg, .editor-notice { margin: 0 20px 12px; }
+.editor-notice { padding: 9px 12px; border-radius: 8px; background: #edfaef; color: #14532d; font-size: 14px; font-weight: 600; }
+.editor-alert { margin: 0 20px 12px; padding: 10px 12px; border-radius: 8px; background: #fcf9e8; border: 1px solid #f0e2a8; font-size: 14px; color: #614200; }
+.editor-panel .editor-alert { margin: 0; }
+.editor-alert p { margin: 0 0 8px; }
+
+.editor-menu { margin: 0 -20px; padding: 0; list-style: none; border-top: 1px solid #f0f0f1; }
+.editor-menu li { border-bottom: 1px solid #f0f0f1; }
+.editor-menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 14px 20px; border-radius: 0; background: #fff; color: var(--ink); text-align: left; }
+.editor-menu button:hover:not(:disabled) { background: #f6f7f7; color: var(--wp); }
+.editor-menu button > span { display: flex; flex-direction: column; gap: 2px; }
+.editor-menu strong { font-weight: 600; }
+.editor-note { padding: 14px 20px; }
+
+.editor-sections { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.editor-sections li { position: relative; display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 6px; border: 1px solid #dcdcde; border-radius: 8px; background: #fff; cursor: grab; transition: border-color 150ms ease, box-shadow 150ms ease, opacity 150ms ease; }
+.editor-sections li:hover { border-color: #a7aaad; }
+.editor-sections li.is-selected { border-color: var(--wp); box-shadow: 0 0 0 1px var(--wp); }
+.editor-sections li.is-hidden .section-open > span:first-child { color: var(--muted); text-decoration: line-through; text-decoration-color: #c3c4c7; }
+.editor-sections li[data-dragging] { opacity: .4; }
+.editor-sections li[data-drop]::before { content: ''; position: absolute; left: -2px; right: -2px; height: 3px; border-radius: 3px; background: var(--wp); }
+.editor-sections li[data-drop='before']::before { top: -5px; }
+.editor-sections li[data-drop='after']::before { bottom: -5px; }
+.drag-grip { display: grid; place-items: center; color: #8c8f94; }
+.section-open { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 8px 4px; background: transparent; color: var(--ink); font-weight: 500; text-align: left; }
+.section-open:hover:not(:disabled) { background: transparent; color: var(--wp); }
+.editor-sections .editor-icon { color: var(--ink-2); }
+.editor-sections .editor-icon:hover:not(:disabled) { background: var(--panel-soft); color: var(--ink); }
+.editor-sections .editor-icon[aria-pressed='false'] { color: #a7aaad; }
+.tag { padding: 1px 7px; border-radius: 99px; background: #f0f0f1; color: var(--muted); font-size: 11.5px; font-weight: 600; }
+
+.editor-section-panel { display: flex; flex-direction: column; gap: 14px; }
+.editor-section-panel .section-title { width: 100%; }
+.editor-switch { flex-direction: row; align-items: center; gap: 10px; font-weight: 500; }
+.editor-switch input { width: 18px; height: 18px; accent-color: var(--wp); }
+.editor-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.editor-side .site-card.is-bare, .editor-side .photos.is-bare { display: flex; flex-direction: column; gap: 10px; }
+.editor-side .is-bare h3:first-child { margin-top: 0; }
+.editor-side .look-grid { grid-template-columns: 1fr; }
+
+.gallery-grid li[draggable] { cursor: grab; }
+.gallery-grid li[data-dragging] { opacity: .4; }
+.gallery-grid li[data-drop] { box-shadow: -4px 0 0 var(--brand); }
+.gallery-grid li[data-drop='after'] { box-shadow: 4px 0 0 var(--brand); }
+
+.editor-summary { margin: auto 20px 20px; padding: 10px 12px; border-radius: 8px; background: var(--panel-soft); font-size: 14px; }
+.editor-summary summary { cursor: pointer; font-weight: 600; }
+.editor-summary ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); }
+
+.editor-canvas { position: relative; display: flex; justify-content: center; min-height: 0; overflow: hidden; padding: 0; }
+.editor-canvas:not(.is-desktop) { padding: 24px; }
+.editor-frame { width: 100%; height: 100%; transition: width 320ms cubic-bezier(.16, 1, .3, 1); }
+.editor-canvas:not(.is-desktop) .editor-frame { overflow: hidden; border-radius: 18px; box-shadow: 0 0 0 1px #dcdcde, 0 18px 40px rgb(0 0 0 / .14); }
+.editor-frame iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+
+@media (max-width: 760px) {
+  .editor { --side-w: 100%; grid-template-rows: 56px minmax(0, 1fr) minmax(0, 1fr); grid-template-columns: 1fr; }
+  .editor-side { grid-row: 3; border-right: 0; border-top: 1px solid #dcdcde; }
+  .editor-canvas { grid-row: 2; }
+  .editor-state, .editor-devices, .editor-name { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .editor-panel { animation: panel-in 220ms cubic-bezier(.16, 1, .3, 1) both; }
+}
+@keyframes panel-in { from { opacity: 0; transform: translateX(14px); } }
+.editor-section-panel .section-title { padding: 10px 12px; border: 1px solid #dcdcde; border-radius: 8px; background: #fff; font-weight: 500; }

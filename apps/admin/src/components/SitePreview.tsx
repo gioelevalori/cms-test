@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface Props {
   siteUrl: string;
@@ -6,6 +7,8 @@ interface Props {
   previewUrl: string | null;
   /** Cambia quando i dati cambiano: ricarica il sito. */
   version: number;
+  /** L'editor a tutto schermo, dove trascinare le sezioni. */
+  editorHref?: string;
 }
 
 const DESKTOP_WIDTH = 1280;
@@ -14,7 +17,7 @@ const DESKTOP_WIDTH = 1280;
  * Il sito dentro il pannello: quello vero, o com'è con la modifica in attesa di conferma.
  * Quando cambia, il sito nuovo si carica dietro a quello vecchio e lo sostituisce in dissolvenza: niente lampi bianchi.
  */
-export function SitePreview({ siteUrl, previewUrl, version }: Props) {
+export function SitePreview({ siteUrl, previewUrl, version, editorHref }: Props) {
   const [device, setDevice] = useState<'phone' | 'desktop'>('phone');
   const [width, setWidth] = useState(0);
   const stage = useRef<HTMLDivElement>(null);
@@ -59,6 +62,7 @@ export function SitePreview({ siteUrl, previewUrl, version }: Props) {
       <p className="hint preview-note">
         {previewUrl ? 'Così sarà il sito se confermi. Finché non confermi, i clienti vedono quello di prima.' : 'Quello che vedono i clienti adesso.'}
         {' '}<a href={src} target="_blank" rel="noreferrer">Apri in una nuova scheda ↗</a>
+        {editorHref && <>{' · '}<Link to={editorHref}>Modifica a tutto schermo</Link></>}
       </p>
       <div ref={stage} className={`preview-stage is-${device}`}>
         {frames.map((f) => (

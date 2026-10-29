@@ -1,6 +1,6 @@
 import { Fragment, type CSSProperties, type ReactNode } from 'react';
 import {
-  LINKS, WEEKDAY_NAMES, addDays, categoryProfile, formatDateIt, openStatus, photoUrl, resolveSite, timeIn, todayIn, weekdayOf,
+  LINKS, WEEKDAY_NAMES, addDays, categoryProfile, formatDateIt, openStatus, photoUrl, resolveSite, sectionHasContent, timeIn, todayIn, weekdayOf,
   type BusinessData, type IsoDate, type SectionId, type TimeSlot, type Weekday,
 } from '@cms/shared';
 import { Reveal } from './Reveal';
@@ -58,7 +58,12 @@ const ANCHOR: Record<SectionId, string> = {
  * Il sito dell'attività: tutto viene dai dati e dalle impostazioni del sito
  * (stile, colore, testi, ordine e visibilità delle sezioni, social).
  */
-export function Site({ data, timezone }: { data: BusinessData; timezone: string }) {
+export function Site({ data, timezone, edit }: {
+  data: BusinessData;
+  timezone: string;
+  /** Solo nell'editor del pannello: ogni sezione viene avvolta (maniglia, selezione) e affiancamenti e animazioni si spengono. */
+  edit?: { wrap: (id: SectionId, title: string, node: ReactNode, index: number, total: number) => ReactNode };
+}) {
   const site = resolveSite(data);
   const today = todayIn(timezone);
   const now = todayText(data, today);
@@ -75,17 +80,7 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
   // Senza frase scelta, sotto il nome va la descrizione e la sezione "Chi siamo" non la ripete.
   const lead = site.tagline || data.description;
 
-  /** Una sezione ha qualcosa da mostrare? Le vuote non compaiono, così il sito non ha buchi. */
-  const hasContent: Record<SectionId, boolean> = {
-    highlights: site.highlights.length > 0,
-    catalog: data.catalog.length > 0,
-    about: Boolean(site.tagline && data.description),
-    hours: data.openingHours.length > 0 || data.specialHours.length > 0,
-    posts: data.posts.length > 0,
-    gallery: photos.length > 0,
-    where: Boolean(data.address),
-  };
-  const visible = site.order.filter((id) => !site.hidden.includes(id) && hasContent[id]);
+  const visible = site.order.filter((id) => !site.hidden.includes(id) && sectionHasContent(data, id));
 
   const heading = (id: SectionId) => <h2 id={`${ANCHOR[id]}-t`}>{site.titles[id]}</h2>;
   const render: Record<SectionId, () => ReactNode> = {
@@ -189,7 +184,11 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
   for (let i = 0; i < visible.length; i++) {
     const id = visible[i];
     const next = visible[i + 1];
-    if ((id === 'hours' && next === 'posts') || (id === 'posts' && next === 'hours')) {
+    if (edit) {
+      // Nell'editor ogni sezione è un blocco a sé, da trascinare.
+      const node = id === 'hours' || id === 'posts' ? <div className="site-section">{render[id]()}</div> : render[id]();
+      blocks.push(<Fragment key={id}>{edit.wrap(id, site.titles[id], node, i, visible.length)}</Fragment>);
+    } else if ((id === 'hours' && next === 'posts') || (id === 'posts' && next === 'hours')) {
       blocks.push(<div key={id} className="site-section site-split">{render[id]()}{render[next]()}</div>);
       i++;
     } else if (id === 'hours' || id === 'posts') {
@@ -209,7 +208,7 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
         {data.phone && <span className="topbar-item topbar-phone"><PhoneIcon />{data.phone}</span>}
         <span className="topbar-item"><ClockIcon />{liveText}</span>
       </div>
-      <header className="site-header">
+      <header className="site-header" data-edit-area="brand">
         <a className="site-brand" href="#top">
           <Mark data={data} />
           <span>
@@ -230,7 +229,7 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
       </header>
 
       <main id="top">
-        <div className={`site-hero ${data.cover ? '' : 'no-photo'}`}>
+        <div className={`site-hero ${data.cover ? '' : 'no-photo'}`} data-edit-area="hero">
           {data.cover && (
             <img
               className="site-hero-img"
@@ -264,7 +263,7 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
         {blocks}
       </main>
 
-      <footer className="site-footer" id="contatti">
+      <footer className="site-footer" id="contatti" data-edit-area="footer">
         <div className="footer-brand">
           <Mark data={data} />
           <span>
@@ -284,7 +283,7 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
         <p className="footer-legal">© {today.slice(0, 4)} {data.name} · <a href="/privacy">Privacy</a></p>
       </footer>
 
-      <Reveal />
+      {!edit && <Reveal />}
 
       {/* Sul telefono le due cose che servono di più restano sempre a portata di pollice. */}
       {(phoneHref || mapUrl || nav.includes('catalog')) && (

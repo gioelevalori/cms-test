@@ -360,3 +360,50 @@ a { color: inherit; }
 .site-gallery figure.rv.rv-wait { opacity: .001; transform: scale(.97); clip-path: inset(10% 0 0 0 round 8px); }
 .site-gallery figure.rv img { transition: transform 1200ms cubic-bezier(.16, 1, .3, 1); transition-delay: var(--rv-delay, 0ms); }
 .site-gallery figure.rv.rv-wait img { transform: scale(1.12); }
+
+/* ===== Pagina dentro l'editor del pannello =====
+   Strumenti nel blu dell'editor, fuori dallo stile del sito: si capisce cosa è sito e cosa è strumento. */
+.edit-root { --edit: #3858e9; }
+.edit-root .site { padding-bottom: 0; }
+.edit-root .site-dock { display: none; }
+.edit-block { position: relative; outline: 1px dashed transparent; outline-offset: -1px; transition: outline-color 150ms ease, opacity 200ms ease, transform 200ms ease; }
+.edit-block:hover { outline-color: color-mix(in srgb, var(--edit) 55%, transparent); }
+.edit-block.is-selected { outline: 2px solid var(--edit); outline-offset: -2px; }
+.edit-root.is-dragging .edit-block { outline-color: transparent; }
+.edit-block.is-dragging { opacity: .35; transform: scale(.985); }
+.edit-root.is-dragging, .edit-root.is-dragging * { cursor: grabbing !important; user-select: none; }
+
+.edit-bar {
+  position: absolute; top: -18px; left: 14px; z-index: 7; display: flex; align-items: center; gap: 2px;
+  padding: 3px; border-radius: 8px; background: #1e1e1e; color: #fff; box-shadow: 0 4px 14px rgb(0 0 0 / .22);
+  font: 600 13px/1 'Onest', system-ui, sans-serif; letter-spacing: 0; text-transform: none;
+  opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity 150ms ease, transform 150ms ease;
+}
+.edit-block:hover > .edit-bar, .edit-block.is-selected > .edit-bar, .edit-bar:focus-within { opacity: 1; transform: none; pointer-events: auto; }
+.edit-root.is-dragging .edit-bar { opacity: 0; }
+.edit-bar button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
+.edit-bar button:hover:not(:disabled) { background: rgb(255 255 255 / .14); }
+.edit-bar button:disabled { opacity: .35; cursor: default; }
+.edit-bar .edit-handle { cursor: grab; touch-action: none; }
+.edit-title { padding: 0 8px 0 2px; white-space: nowrap; }
+.edit-block.is-selected > .edit-bar { background: var(--edit); }
+
+.edit-drop-line { position: fixed; left: 12px; right: 12px; z-index: 20; height: 4px; margin-top: -2px; border-radius: 4px; background: var(--edit); box-shadow: 0 0 0 3px rgb(56 88 233 / .2); pointer-events: none; transition: top 90ms ease-out; }
+.edit-ghost { position: fixed; z-index: 21; padding: 8px 12px; border-radius: 8px; background: var(--edit); color: #fff; font: 600 13px/1 'Onest', system-ui, sans-serif; box-shadow: 0 10px 24px rgb(0 0 0 / .25); pointer-events: none; }
+
+/* Parti fisse (testata, copertina, piè di pagina): si selezionano, non si spostano. */
+.edit-root [data-edit-area] { position: relative; cursor: pointer; }
+.edit-root [data-edit-area]::after {
+  position: absolute; top: 10px; right: 10px; z-index: 6; padding: 6px 9px; border-radius: 7px; background: #1e1e1e; color: #fff;
+  font: 600 12px/1 'Onest', system-ui, sans-serif; letter-spacing: 0; text-transform: none; opacity: 0; transition: opacity 150ms ease; pointer-events: none;
+}
+.edit-root [data-edit-area='brand']::after { content: 'Logo e nome'; }
+.edit-root [data-edit-area='hero']::after { content: 'Copertina e testi'; }
+.edit-root [data-edit-area='footer']::after { content: 'Contatti e social'; }
+.edit-root [data-edit-area]:hover { outline: 1px dashed color-mix(in srgb, var(--edit) 55%, transparent); outline-offset: -1px; }
+.edit-root [data-edit-area]:hover::after { opacity: 1; }
+.edit-root[data-selected='brand'] [data-edit-area='brand'], .edit-root[data-selected='hero'] [data-edit-area='hero'], .edit-root[data-selected='footer'] [data-edit-area='footer'] { outline: 2px solid var(--edit); outline-offset: -2px; }
+.edit-root[data-selected='brand'] [data-edit-area='brand']::after, .edit-root[data-selected='hero'] [data-edit-area='hero']::after, .edit-root[data-selected='footer'] [data-edit-area='footer']::after { opacity: 1; background: var(--edit); }
+/* Nell'editor l'intestazione non resta in alto: coprirebbe le maniglie. */
+.edit-root .site-header { position: relative; animation: none; }
+.edit-block:hover, .edit-block.is-selected { z-index: 3; }

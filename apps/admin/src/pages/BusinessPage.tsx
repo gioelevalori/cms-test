@@ -77,7 +77,10 @@ export function BusinessPage() {
             </label>
           )}
         </div>
-        <a className="button ghost" href={siteUrl} target="_blank" rel="noreferrer">Vedi il sito ↗</a>
+        <div className="topbar-actions">
+          <a className="button ghost" href={siteUrl} target="_blank" rel="noreferrer">Vedi il sito ↗</a>
+          <Link className="button" to={`/b/${businessId}/modifica`}>Modifica il sito</Link>
+        </div>
       </header>
       {error && <p className="error">{error}</p>}
 
@@ -88,7 +91,7 @@ export function BusinessPage() {
           <History changes={changes.data ?? []} onUndo={undo} busy={busy} />
         </div>
         <div className="col">
-          <SitePreview siteUrl={siteUrl} previewUrl={pending ? previewHref(pending) : null} version={version} />
+          <SitePreview siteUrl={siteUrl} previewUrl={pending ? previewHref(pending) : null} version={version} editorHref={`/b/${businessId}/modifica`} />
           <SiteCard data={b.data} canStructure={isBuilder} busy={busy} onOps={applyOps} />
           <Photos data={b.data} busy={busy} upload={upload} onOps={applyOps} />
           <BusinessDataView data={b.data} onOps={applyOps} busy={busy} upload={upload} />
