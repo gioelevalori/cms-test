@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   SECTIONS, applyOps, canEditStructure, compactOps, describeOp, isFromCanvas, isValidOp, resolveSite, sectionHasContent,
@@ -67,7 +67,12 @@ export function EditorPage() {
   const business = useQuery({ queryKey: ['business', businessId], queryFn: () => api.business(businessId) });
   const [batches, setBatches] = useState<ChangeOp[][]>(() => loadDraft(businessId));
   const [redo, setRedo] = useState<ChangeOp[][]>([]);
-  const [panel, setPanel] = useState<Panel>('home');
+  // Dalla lista "Completa il sito" si arriva direttamente al pannello giusto.
+  const [params] = useSearchParams();
+  const [panel, setPanel] = useState<Panel>(() => {
+    const p = params.get('pannello');
+    return p === 'photos' || p === 'texts' || p === 'social' || p === 'look' || p === 'sections' ? p : 'home';
+  });
   const [selected, setSelected] = useState<EditTarget | null>(null);
   const [device, setDevice] = useState<Device>('desktop');
   const [busy, setBusy] = useState(false);

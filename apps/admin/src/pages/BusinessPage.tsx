@@ -6,10 +6,8 @@ import { api, SITE_URL, type Change } from '../api/client';
 import { Chat } from '../components/Chat';
 import { BusinessDataView } from '../components/BusinessData';
 import { History } from '../components/History';
-import { SiteCard } from '../components/SiteCard';
 import { WhatsAppCard } from '../components/WhatsAppCard';
-import { Photos } from '../components/Photos';
-import { SitePreview } from '../components/SitePreview';
+import { ChecklistCard, GoogleCard, ShareCard, TodayCard } from '../components/Overview';
 
 export function BusinessPage() {
   const { businessId = '' } = useParams();
@@ -19,13 +17,12 @@ export function BusinessPage() {
   const isBuilder = business.data ? canEditStructure(business.data.role) : false;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState<string | null>(null);
-  const [version, setVersion] = useState(0);
+  const [prefill, setPrefill] = useState<{ text: string; key: number }>();
+  const me = useQuery({ queryKey: ['me'], queryFn: api.me });
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['business', businessId] });
     qc.invalidateQueries({ queryKey: ['changes', businessId] });
-    setVersion((v) => v + 1);
   };
 
   async function run(fn: () => Promise<unknown>) {
@@ -61,6 +58,8 @@ export function BusinessPage() {
   const examples = examplesFor(b.data, todayIn(b.timezone));
   const siteUrl = `${SITE_URL}/${b.slug}`;
   const previewHref = (changeId: string) => `${siteUrl}/anteprima/${changeId}`;
+  const pendingCount = (changes.data ?? []).filter((c) => c.status === 'proposed').length;
+  const whatsappLinked = Boolean(me.data?.whatsapp && me.data.whatsappBusinessId === businessId);
 
   return (
     <div className="container wide">
@@ -84,16 +83,18 @@ export function BusinessPage() {
       </header>
       {error && <p className="error">{error}</p>}
 
+      {/* Aspetto, foto e anteprima del sito stanno nell'editor ("Modifica il sito"); qui il lavoro di tutti i giorni. */}
       <div className="grid">
         <div className="col">
-          <Chat businessId={businessId} examples={examples} onApplied={refresh} onPending={setPending} previewHref={previewHref} />
-          <WhatsAppCard businessId={businessId} businessName={b.data.name} example={examples[0]} />
+          <Chat businessId={businessId} examples={examples} onApplied={refresh} previewHref={previewHref} prefill={prefill} />
+          <TodayCard data={b.data} timezone={b.timezone} pending={pendingCount} />
+          <div id="whatsapp"><WhatsAppCard businessId={businessId} businessName={b.data.name} example={examples[0]} /></div>
           <History changes={changes.data ?? []} onUndo={undo} busy={busy} />
         </div>
         <div className="col">
-          <SitePreview siteUrl={siteUrl} previewUrl={pending ? previewHref(pending) : null} version={version} editorHref={`/b/${businessId}/modifica`} />
-          <SiteCard data={b.data} canStructure={isBuilder} busy={busy} onOps={applyOps} />
-          <Photos data={b.data} busy={busy} upload={upload} onOps={applyOps} />
+          <ChecklistCard data={b.data} businessId={businessId} whatsappLinked={whatsappLinked} onSay={(text) => setPrefill({ text, key: Date.now() })} />
+          <ShareCard url={siteUrl} name={b.data.name} slug={b.slug} />
+          <GoogleCard data={b.data} url={siteUrl} />
           <BusinessDataView data={b.data} onOps={applyOps} busy={busy} upload={upload} />
         </div>
       </div>

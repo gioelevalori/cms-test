@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type Change, type ChatResult } from '../api/client';
 
 interface Props {
@@ -7,21 +7,31 @@ interface Props {
   examples: string[];
   onApplied: () => void;
   /** La proposta in attesa (o nessuna), per mostrare il sito com'è con la modifica. */
-  onPending: (changeId: string | null) => void;
+  onPending?: (changeId: string | null) => void;
   previewHref: (changeId: string) => string;
+  /** Una frase da mettere nella casella (dalla lista "Completa il sito"); `key` cambia a ogni richiesta. */
+  prefill?: { text: string; key: number };
 }
 
 /** Il cuore del CMS: si scrive cosa cambia, si vede l'anteprima, si conferma. */
-export function Chat({ businessId, examples, onApplied, onPending, previewHref }: Props) {
+export function Chat({ businessId, examples, onApplied, onPending, previewHref, prefill }: Props) {
   const [message, setMessage] = useState('');
   const [result, setResultState] = useState<ChatResult | null>(null);
   const setResult = (r: ChatResult | null) => {
     setResultState(r);
-    onPending(r?.status === 'proposed' ? r.id : null);
+    onPending?.(r?.status === 'proposed' ? r.id : null);
   };
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const box = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (!prefill) return;
+    setMessage(prefill.text);
+    box.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Il cursore va in fondo, dove si completa la frase.
+    setTimeout(() => { box.current?.focus(); box.current?.setSelectionRange(prefill.text.length, prefill.text.length); }, 300);
+  }, [prefill?.key]);
   // La conferma resta visibile qualche secondo, poi si ritira da sola.
   useEffect(() => {
     if (!done) return;
@@ -70,6 +80,7 @@ export function Chat({ businessId, examples, onApplied, onPending, previewHref }
       <h2>Cosa cambia oggi?</h2>
       <form onSubmit={send}>
         <textarea
+          ref={box}
           rows={3}
           value={message}
           placeholder="Scrivi come parleresti a un collaboratore…"

@@ -18,7 +18,7 @@ Lingua dell'utente e dell'interfaccia: italiano.
 - Stato "Aperto ora / chiude alle…" calcolato da `openStatus` (shared/opening.ts) all'ora della richiesta; lo usano il sito e `GET /businesses` (pagina "Le tue attività").
 - Movimento: sito con entrate allo scorrimento (`components/Reveal.tsx`, IntersectionObserver) e animazioni legate allo scroll solo per testata e copertina; tutto con `prefers-reduced-motion`.
 - Foto: `POST /businesses/:id/photos` → Cloudinary con `CLOUDINARY_URL` (da impostare su Render; senza, le foto rispondono "non ancora attive"). Da WhatsApp: foto con didascalia.
-- `apps/admin` — React 19 + Vite 6 + TanStack Query, HashRouter. Registrazione dal login, "Nuova attività" con tipo, schede Foto e "Aspetto del sito".
+- `apps/admin` — React 19 + Vite 6 + TanStack Query, HashRouter. Registrazione dal login, "Nuova attività" con tipo. Pagina attività = lavoro quotidiano (chat, Oggi, WhatsApp, cronologia, Completa il sito, Il tuo sito con QR via `qrcode`, Come ti vede Google, dati); aspetto, foto e anteprima solo nell'editor (`?pannello=photos|texts|social|look|sections` lo apre su un pannello). Dev: `npm run dev -w @cms/admin -- --force` se Vite serve una @cms/shared vecchia.
 - `apps/web` — Next.js 15 app router, sito pubblico `/[site]` (componente `Site.tsx`, stili in `globals.css` portati dalla demo), `/privacy`.
 - `apps/demo` — demo statica per GitHub Pages (localStorage).
 - `scripts/e2e.mjs` — e2e API + WhatsApp con Graph mock. CI: `.github/workflows/ci.yml`; Pages: `pages.yml`; Render: `render.yaml`.
