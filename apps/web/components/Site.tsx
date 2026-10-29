@@ -9,12 +9,15 @@ const DAYS = [1, 2, 3, 4, 5, 6, 7] as Weekday[];
 /** "09:00" → "9", "14:30" → "14:30": orari compatti. */
 const compact = (t: string | null) => (t ?? '').replace(/^0/, '').replace(/:00$/, '');
 const slotText = (s: TimeSlot) => `${compact(s.opens)}–${compact(s.closes)}`;
+/** Orario di un giorno speciale; i dati vecchi possono avere solo apertura o solo chiusura. */
+const specialText = (opens: string | null, closes: string | null) =>
+  opens && closes ? `${compact(opens)}–${compact(closes)}` : opens ? `dalle ${opens}` : closes ? `fino alle ${closes}` : '';
 const daySlots = (data: BusinessData, d: Weekday) => data.openingHours.filter((h) => h.weekday === d);
 
 /** Orario di oggi, tenendo conto delle variazioni. */
 function todayText(data: BusinessData, today: IsoDate): { text: string; closed: boolean } {
   const special = data.specialHours.find((s) => s.date === today);
-  if (special) return special.closed ? { text: 'Oggi chiuso', closed: true } : { text: `Oggi aperto ${slotText({ opens: special.opens ?? '', closes: special.closes ?? '' })}`, closed: false };
+  if (special) return special.closed ? { text: 'Oggi chiuso', closed: true } : { text: `Oggi aperto ${specialText(special.opens, special.closes)}`.trim(), closed: false };
   const slots = daySlots(data, weekdayOf(today));
   return slots.length ? { text: `Oggi aperto ${slots.map(slotText).join(' e ')}`, closed: false } : { text: 'Oggi chiuso', closed: true };
 }
@@ -222,7 +225,7 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
               <ul className="site-notices">
                 {upcoming.slice(0, 3).map((s) => (
                   <li key={s.date}>
-                    <strong>{formatDateIt(s.date)}</strong> {s.closed ? 'chiuso' : `aperto ${s.opens}–${s.closes}`}{s.note ? ` · ${s.note}` : ''}
+                    <strong>{formatDateIt(s.date)}</strong> {s.closed ? 'chiuso' : `aperto ${specialText(s.opens, s.closes)}`.trim()}{s.note ? ` · ${s.note}` : ''}
                   </li>
                 ))}
                 {upcoming.length > 3 && <li>e altri {upcoming.length - 3} giorni</li>}

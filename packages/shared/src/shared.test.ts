@@ -166,18 +166,20 @@ test('schema.org con orari e menu', () => {
 test("ogni esempio di ogni tipo di attività viene capito, anche su un'attività appena creata", () => {
   for (const c of CATEGORIES) {
     const empty: BusinessData = { ...sample(), category: c.id, openingHours: [], catalog: [] };
-    for (const msg of examplesFor(empty)) {
+    assert.ok(examplesFor(empty, TODAY).length >= 4, c.id);
+    for (const msg of examplesFor(empty, TODAY)) {
       const r = interpretMessage(msg, empty, TODAY);
       assert.deepEqual(r.unrecognized, [], `${c.id}: "${msg}"`);
       assert.ok(r.ops.length > 0, `${c.id}: "${msg}"`);
     }
     const full: BusinessData = { ...sample(), category: c.id };
-    for (const msg of examplesFor(full)) assert.deepEqual(interpretMessage(msg, full, TODAY).unrecognized, [], `${c.id}: "${msg}"`);
+    assert.ok(examplesFor(full, TODAY).length >= 4, c.id);
+    for (const msg of examplesFor(full, TODAY)) assert.deepEqual(interpretMessage(msg, full, TODAY).unrecognized, [], `${c.id}: "${msg}"`);
   }
 });
 
 test("esempi personalizzati con una voce vera dell'attività", () => {
-  const ex = examplesFor(sample());
+  const ex = examplesFor(sample(), TODAY);
   assert.ok(ex.includes('Margherita costa 7 euro'));
   assert.deepEqual(interpretMessage('Margherita non disponibile', sample(), TODAY).ops, [{ op: 'setItemAvailability', itemId: 'c1', available: false }]);
 });
@@ -272,4 +274,13 @@ test('sito: applyOps, predefiniti per tipo, ordine delle sezioni e validità', (
   assert.equal(isValidOp({ op: 'setAccent', color: 'red' }), false);
   assert.equal(isValidOp({ op: 'setLink', network: 'instagram', url: 'javascript:alert(1)' }), false);
   assert.ok(STRUCTURE_OPS.includes('setLook') && !STRUCTURE_OPS.includes('setTagline'));
+});
+
+test('giorno di solito chiuso: "chiudiamo alle 15" da solo non basta', () => {
+  // Il lunedì nel campione è chiuso.
+  const r = interpretMessage('Lunedì chiudiamo alle 15', sample(), TODAY);
+  assert.deepEqual(r.ops, []);
+  assert.deepEqual(interpretMessage('Lunedì dalle 10 alle 15', sample(), TODAY).ops, [
+    { op: 'setSpecialHours', date: '2026-11-02', closed: false, opens: '10:00', closes: '15:00', note: null },
+  ]);
 });

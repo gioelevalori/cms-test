@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CATEGORIES, canEditStructure, examplesFor, type ChangeOp } from '@cms/shared';
+import { CATEGORIES, canEditStructure, examplesFor, todayIn, type ChangeOp } from '@cms/shared';
 import { api, SITE_URL, type Change } from '../api/client';
 import { Chat } from '../components/Chat';
 import { BusinessDataView } from '../components/BusinessData';
@@ -54,6 +54,7 @@ export function BusinessPage() {
   if (business.isLoading) return <p className="container">Caricamento…</p>;
   if (business.error) return <p className="container error">{(business.error as Error).message}</p>;
   const b = business.data!;
+  const examples = examplesFor(b.data, todayIn(b.timezone));
 
   return (
     <div className="container wide">
@@ -76,8 +77,8 @@ export function BusinessPage() {
 
       <div className="grid">
         <div className="col">
-          <Chat businessId={businessId} examples={examplesFor(b.data)} onApplied={refresh} />
-          <WhatsAppCard businessId={businessId} businessName={b.data.name} example={examplesFor(b.data)[0]} />
+          <Chat businessId={businessId} examples={examples} onApplied={refresh} />
+          <WhatsAppCard businessId={businessId} businessName={b.data.name} example={examples[0]} />
           <History changes={changes.data ?? []} onUndo={undo} busy={busy} />
         </div>
         <div className="col">

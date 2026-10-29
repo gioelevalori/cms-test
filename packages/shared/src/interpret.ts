@@ -207,7 +207,8 @@ function interpretHours(text: string, original: string, data: BusinessData, toda
       opens = slots[0].opens;
       closes = slots[slots.length - 1].closes;
     }
-    if (opens && closes && !isPossibleSlot(opens, closes)) return null;
+    // Su un giorno di solito chiuso servono entrambi gli orari: "chiudiamo alle 15" da solo non dice quando si apre.
+    if (!opens || !closes || !isPossibleSlot(opens, closes)) return null;
     ops.push({ op: 'setSpecialHours', date, closed: false, opens, closes, note });
   }
   return ops;
@@ -369,4 +370,23 @@ export function interpretPhoto(caption: string, url: string, data: BusinessData,
 
   const clean = caption.replace(/^\s*(?:foto|galleria|aggiungi(?: alla galleria)?|nella galleria)\s*:?\s*/i, '').trim();
   return { ops: [{ op: 'addPhoto', url, caption: clean.slice(0, 200) }], unrecognized: [] };
+}
+
+const formatEuro = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ','));
+
+/**
+ * Esempi per questa attività: quelli del suo tipo, più due costruiti su una sua voce vera
+ * ("Diavola costa 9 euro"). Restano solo quelli che l'interprete capisce sui dati di oggi:
+ * "chiudiamo alle 15" non compare se quel giorno di solito si è chiusi.
+ */
+export function examplesFor(data: BusinessData, today: IsoDate): string[] {
+  const examples = ['Il martedì dalle 9 alle 18', ...categoryProfile(data.category).examples];
+  const item = data.catalog.find((i) => i.available && i.price !== null);
+  if (item) examples.splice(2, 0, `${item.name} costa ${formatEuro(item.price! + 1)} euro`, `${item.name} non disponibile`);
+  const understood = examples.filter((e) => {
+    const r = interpretMessage(e, data, today);
+    return r.ops.length > 0 && r.unrecognized.length === 0;
+  });
+  // L'esempio degli orari serve solo a chi non li ha ancora scritti.
+  return data.openingHours.length ? understood.filter((e) => e !== examples[0]) : understood;
 }

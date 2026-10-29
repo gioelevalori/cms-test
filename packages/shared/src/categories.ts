@@ -191,16 +191,3 @@ const BY_ID = new Map(CATEGORIES.map((c) => [c.id, c]));
 export function categoryProfile(category: string): CategoryProfile {
   return BY_ID.get(category) ?? BY_ID.get('other')!;
 }
-
-/**
- * Esempi per questa attività: quelli del suo tipo, più uno costruito su una sua voce reale
- * ("Diavola costa 9 euro") così il titolare vede che il sistema conosce i suoi dati.
- */
-export function examplesFor(data: Pick<BusinessData, 'category' | 'catalog'>): string[] {
-  const examples = [...categoryProfile(data.category).examples];
-  const item = data.catalog.find((i) => i.available && i.price !== null);
-  if (item) examples.splice(1, 0, `${item.name} costa ${formatEuro(item.price! + 1)} euro`, `${item.name} non disponibile`);
-  return examples;
-}
-
-const formatEuro = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ','));
