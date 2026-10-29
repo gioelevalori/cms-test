@@ -407,3 +407,15 @@ a { color: inherit; }
 /* Nell'editor l'intestazione non resta in alto: coprirebbe le maniglie. */
 .edit-root .site-header { position: relative; animation: none; }
 .edit-block:hover, .edit-block.is-selected { z-index: 3; }
+
+/* Pagina d'attesa mentre l'API si sveglia (app/[site]/[[...slug]]/error.tsx) */
+.waking { display: grid; place-items: center; min-height: 100vh; padding: 24px; background: #f6f7f9; font-family: 'Onest', system-ui, sans-serif; color: #12161b; }
+.waking-card { width: 100%; max-width: 420px; text-align: center; }
+.waking h1 { margin: 22px 0 8px; font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+.waking p { margin: 0; color: #4b5563; line-height: 1.5; }
+.waking button { margin-top: 20px; padding: 11px 20px; border: 0; border-radius: 10px; background: #12161b; color: #fff; font: 600 15px 'Onest', system-ui, sans-serif; cursor: pointer; }
+.waking button:hover { background: #2a3038; }
+.waking-bar { display: block; height: 4px; overflow: hidden; border-radius: 4px; background: #e3e6ea; }
+.waking-bar span { display: block; width: 40%; height: 100%; border-radius: inherit; background: #12161b; animation: waking 1.4s cubic-bezier(.65, 0, .35, 1) infinite; }
+@keyframes waking { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce) { .waking-bar span { width: 100%; animation: none; opacity: .5; } }
