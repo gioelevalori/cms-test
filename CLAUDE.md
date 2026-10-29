@@ -11,8 +11,10 @@ Lingua dell'utente e dell'interfaccia: italiano.
 ## Struttura (npm workspaces)
 - `packages/shared` — tipi, ChangeOp (`applyOps`, `describeOp`, `isValidOp`), `interpretMessage` (regole in italiano), `toSchemaOrg`, layout. Test: `npm test -w packages/shared`.
 - `apps/api` — NestJS 11 + Prisma 6 + PostgreSQL. Moduli: business, changes (propose/confirm/reject/undo con snapshot before/after, 409 se i dati sono cambiati), interpreter (fallback Claude opzionale con `ANTHROPIC_API_KEY`), pages, public, auth, whatsapp (webhook Cloud API con firma HMAC su rawBody, dedupe `InboundMessage`, pulsanti `confirm:<id>`/`reject:<id>`). Seed: `cliente@example.com`, `freelance@example.com` (password da `SEED_PASSWORD`), attività `pizzeria-da-mario`.
-- `apps/admin` — React 19 + Vite 6 + TanStack Query, HashRouter.
-- `apps/web` — Next.js 15 app router, sito pubblico `/[site]/[[...slug]]`, `/privacy`.
+- `packages/shared` contiene anche: `categories.ts` (tipi di attività: esempi, nomi sezioni, schema.org), `site.ts` + `interpret-site.ts` (aspetto del sito: 5 stili, colore, testi, sezioni, social; salvato in `Business.theme`), foto (`setCover`/`addPhoto`/`setItemImage`, solo URL Cloudinary, `interpretPhoto` per le didascalie). Stile/colore/sezioni (`STRUCTURE_OPS`) solo per owner/builder.
+- Foto: `POST /businesses/:id/photos` → Cloudinary con `CLOUDINARY_URL` (da impostare su Render; senza, le foto rispondono "non ancora attive"). Da WhatsApp: foto con didascalia.
+- `apps/admin` — React 19 + Vite 6 + TanStack Query, HashRouter. Registrazione dal login, "Nuova attività" con tipo, schede Foto e "Aspetto del sito".
+- `apps/web` — Next.js 15 app router, sito pubblico `/[site]` (componente `Site.tsx`, stili in `globals.css` portati dalla demo), `/privacy`.
 - `apps/demo` — demo statica per GitHub Pages (localStorage).
 - `scripts/e2e.mjs` — e2e API + WhatsApp con Graph mock. CI: `.github/workflows/ci.yml`; Pages: `pages.yml`; Render: `render.yaml`.
 
