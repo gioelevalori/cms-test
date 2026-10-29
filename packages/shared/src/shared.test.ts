@@ -280,9 +280,55 @@ test('giorno di solito chiuso: "chiudiamo alle 15" da solo non basta', () => {
   // Il lunedì nel campione è chiuso.
   const r = interpretMessage('Lunedì chiudiamo alle 15', sample(), TODAY);
   assert.deepEqual(r.ops, []);
-  assert.deepEqual(interpretMessage('Lunedì dalle 10 alle 15', sample(), TODAY).ops, [
+  // Con un verbo è solo quel lunedì; senza verbo ("Lunedì dalle 10 alle 15") è l'orario di ogni lunedì.
+  assert.deepEqual(interpretMessage('Lunedì apriamo dalle 10 alle 15', sample(), TODAY).ops, [
     { op: 'setSpecialHours', date: '2026-11-02', closed: false, opens: '10:00', closes: '15:00', note: null },
   ]);
+  assert.deepEqual(interpretMessage('Lunedì dalle 10 alle 15', sample(), TODAY).ops, [
+    { op: 'setWeeklyHours', weekday: 1, slots: [{ opens: '10:00', closes: '15:00' }] },
+  ]);
+});
+
+test('orari scritti in tanti modi', () => {
+  const weekly = (m: string) => interpretMessage(m, sample(), TODAY).ops.map((o) => (o.op === 'setWeeklyHours' ? `${o.weekday}:${o.slots.map((s) => `${s.opens}-${s.closes}`).join('+') || 'chiuso'}` : o.op));
+  const MON_8_18 = ['1:08:00-18:00'];
+  for (const m of ['aperti tutti i lunedi dalle 8 fino 18', 'aperti tutti i lunedì dalle 8 alle 18', 'lunedì 8-18', 'Lunedì: 8:00 - 18:00',
+    'Il lunedì orario 8-18', 'Lunedì dalle otto alle diciotto', 'il lunedì dalle 8 alle 6 del pomeriggio', 'ogni lunedì apriamo alle 8 e chiudiamo alle 18',
+    'il lunedì dalle ore 8 alle ore 18', 'lunedì 8h-18h']) {
+    assert.deepEqual(weekly(m), MON_8_18, m);
+  }
+  assert.deepEqual(weekly('il lunedì dalle 8 e mezza alle 18'), ['1:08:30-18:00']);
+  const WORKDAYS = [1, 2, 3, 4, 5].map((d) => `${d}:08:00-18:00`);
+  for (const m of ['dal lunedì al venerdì dalle 8 alle 18', 'da lunedì a venerdì 8-18', 'lunedì-venerdì 8-18', 'nei giorni feriali dalle 8 alle 18']) {
+    assert.deepEqual(weekly(m), WORKDAYS, m);
+  }
+  assert.deepEqual(weekly('tutti i giorni dalle 7 alle 20'), [1, 2, 3, 4, 5, 6, 7].map((d) => `${d}:07:00-20:00`));
+  assert.deepEqual(weekly('tutti i giorni tranne il lunedì dalle 7 alle 20'), [2, 3, 4, 5, 6, 7].map((d) => `${d}:07:00-20:00`));
+  assert.deepEqual(weekly('Il sabato e la domenica dalle 9 alle 13'), ['6:09:00-13:00', '7:09:00-13:00']);
+  assert.deepEqual(weekly('nel weekend dalle 9 alle 13'), ['6:09:00-13:00', '7:09:00-13:00']);
+  assert.deepEqual(weekly('martedì 9-13 e 15-19'), ['2:09:00-13:00+15:00-19:00']);
+  assert.deepEqual(weekly('lunedì e martedì dalle 9 alle 13 e dalle 15 alle 19'), ['1:09:00-13:00+15:00-19:00', '2:09:00-13:00+15:00-19:00']);
+  assert.deepEqual(weekly("il venerdì fino all'una di notte, dalle 18"), ['5:18:00-01:00']);
+  assert.deepEqual(weekly('chiusi il lunedì'), ['1:chiuso']);
+
+  // Solo quei giorni: con "questo", "prossimo", "domani", una data, o un verbo.
+  const dates = (m: string) => interpretMessage(m, sample(), TODAY).ops.map((o) => (o.op === 'setSpecialHours' ? `${o.date}:${o.closed ? 'chiuso' : `${o.opens}-${o.closes}`}` : o.op));
+  assert.deepEqual(dates('questo weekend chiusi'), ['2026-10-31:chiuso', '2026-11-01:chiuso']);
+  assert.deepEqual(dates('sabato e domenica chiusi'), ['2026-10-31:chiuso', '2026-11-01:chiuso']);
+  assert.deepEqual(dates('oggi chiudiamo prima, alle 23'), ['2026-10-27:19:00-23:00']);
+  assert.deepEqual(dates('ferie dal 10 al 12 agosto'), ['2027-08-10:chiuso', '2027-08-11:chiuso', '2027-08-12:chiuso']);
+  assert.deepEqual(dates('lunedì prossimo apriamo dalle 10 alle 15'), ['2026-11-02:10:00-15:00']);
+  // Un giorno speciale ha una fascia sola: due fasce non si salvano a metà.
+  assert.deepEqual(interpretMessage('domani 9-13 e 15-19', sample(), TODAY).ops, []);
+});
+
+test('listino: nomi interi e prezzi scritti in modi diversi', () => {
+  const ops = (m: string) => interpretMessage(m, sample(), TODAY).ops;
+  assert.deepEqual(ops('nuovo piatto: lasagna 12 euro'), [{ op: 'addCatalogItem', section: 'Primi', name: 'Lasagna', description: '', price: 12 }]);
+  assert.deepEqual(ops('aggiungi la lasagna a 12 euro nei primi'), [{ op: 'addCatalogItem', section: 'Primi', name: 'Lasagna', description: '', price: 12 }]);
+  assert.deepEqual(ops('il prezzo della carbonara è 12,50'), [{ op: 'setItemPrice', itemId: 'c3', price: 12.5 }]);
+  assert.deepEqual(ops('la carbonara passa a 13 euro'), [{ op: 'setItemPrice', itemId: 'c3', price: 13 }]);
+  assert.deepEqual(ops('indirizzo nuovo: Via Mazzini 8, Pescara'), [{ op: 'setContact', field: 'address', value: 'Via Mazzini 8, Pescara' }]);
 });
 
 test('aperto ora: stato, chiusura vicina, prossima apertura', () => {
@@ -354,4 +400,10 @@ test('editor: trascinare tra le sezioni visibili non sposta quelle nascoste', ()
   assert.deepEqual(moveInList(['a', 'b', 'c', 'd'], 0, 3), ['b', 'c', 'a', 'd']);
   assert.deepEqual(moveInList(['a', 'b', 'c', 'd'], 3, 0), ['d', 'a', 'b', 'c']);
   assert.deepEqual(moveInList(['a', 'b', 'c', 'd'], 1, 4), ['a', 'c', 'd', 'b']);
+});
+
+test('indirizzo: "Il nuovo indirizzo è …" non salva la "è"', () => {
+  for (const m of ['Il nuovo indirizzo è Via Roma 1, Pescara', 'Nuovo indirizzo: Via Roma 1, Pescara', 'Il nuovo indirizzo Via Roma 1, Pescara', 'La nuova sede è in Via Roma 1, Pescara']) {
+    assert.deepEqual(interpretMessage(m, sample(), TODAY).ops, [{ op: 'setContact', field: 'address', value: 'Via Roma 1, Pescara' }], m);
+  }
 });

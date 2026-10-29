@@ -57,34 +57,122 @@ function toTime(h: string, m?: string): Time | null {
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 
+const NUMBER_WORDS: Record<string, number> = {
+  una: 1, uno: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9, dieci: 10,
+  undici: 11, dodici: 12, tredici: 13, quattordici: 14, quindici: 15, sedici: 16, diciassette: 17, diciotto: 18,
+  diciannove: 19, venti: 20, ventuno: 21, ventidue: 22, ventitre: 23, ventiquattro: 24,
+};
+const NUMBER_WORD_ALT = Object.keys(NUMBER_WORDS).sort((a, b) => b.length - a.length).join('|');
+
+/**
+ * Gli orari come li scrive la gente diventano cifre: "alle otto e mezza" → "alle 8:30",
+ * "all'una di notte" → "all'1", "alle 4 del pomeriggio" → "alle 16", "ore 9" e "9h" → "9".
+ */
 function wordTimes(text: string): string {
-  return text.replace(/\bmezzogiorno\b/g, '12').replace(/\bmezzanotte\b/g, '24');
+  return text
+    .replace(/\bmezzogiorno\b/g, '12')
+    .replace(/\bmezzanotte\b/g, '24')
+    .replace(new RegExp(`\\b(dalle|alle|all'|le|fino alle|fino a|verso le|ore|e)\\s*(${NUMBER_WORD_ALT})\\b`, 'g'), (_, p: string, w: string) => `${p} ${NUMBER_WORDS[w]}`)
+    .replace(/\b(dall[e']|all[e']|fino(?: alle| a)?)\s*(?:ore|h)\s+/g, '$1 ')
+    .replace(/\b(\d{1,2})\s*h\b/g, '$1')
+    .replace(/\b(\d{1,2})\s+e\s+mezz[ao]\b/g, '$1:30')
+    .replace(/\b(\d{1,2})\s+e\s+(?:un\s+)?quarto\b/g, '$1:15')
+    .replace(/\b(\d{1,2})\s+meno\s+(?:un\s+)?quarto\b/g, (_, h: string) => `${Number(h) - 1}:45`)
+    // "le 4 del pomeriggio", "le 8 di sera": dopo mezzogiorno. "di notte" e "di mattina" restano come sono.
+    .replace(/\b(\d{1,2})(?:[:.](\d{2}))?\s+(?:del|di|della)\s+(?:pomeriggio|sera)\b/g, (m: string, h: string, mm?: string) =>
+      Number(h) < 12 ? `${Number(h) + 12}${mm ? `:${mm}` : ''}` : m.replace(/\s+(?:del|di|della)\s+\w+$/, ''))
+    .replace(/\b(\d{1,2}(?:[:.]\d{2})?)\s+(?:di|del)\s+(?:notte|mattina|mattino)\b/g, '$1');
 }
 
+/** "dalle 8 alle 18", "dalle 8 fino 18", "dall'una alle 3", "8-18", "8:00 - 18:00", "9-13 e 15-19". */
 function findRanges(text: string): TimeSlot[] {
-  const re = new RegExp(`dall[e']\\s*${TIME}\\s*(?:alle|all'|a)\\s*${TIME}`, 'g');
   const out: TimeSlot[] = [];
-  for (const m of text.matchAll(re)) {
-    const opens = toTime(m[1], m[2]);
-    const closes = toTime(m[3], m[4]);
+  const push = (h1: string, m1: string | undefined, h2: string, m2: string | undefined) => {
+    const opens = toTime(h1, m1);
+    const closes = toTime(h2, m2);
     if (opens && closes) out.push({ opens, closes });
+  };
+  const words = new RegExp(`dall[e']\\s*${TIME}\\s*(?:fino\\s+alle|fino\\s+all'|fino\\s+a|fino|alle|all'|a|[-–])\\s*${TIME}`, 'g');
+  let rest = text;
+  for (const m of text.matchAll(words)) {
+    push(m[1], m[2], m[3], m[4]);
+    rest = rest.replace(m[0], ' ');
+  }
+  // Trattino tra due orari, ma non tra due giorni del mese ("10-20 agosto") né tra prezzi ("5-6 euro").
+  const dash = new RegExp(`(?<![\\d/.,:])${TIME}\\s*[-–]\\s*${TIME}(?![\\d/,]|\\s*(?:${MONTH_ALT}|euro|€))`, 'g');
+  for (const m of rest.matchAll(dash)) push(m[1], m[2], m[3], m[4]);
+  return out.filter((s) => s.opens !== s.closes);
+}
+
+/** L'orario dopo un verbo, anche con qualche parola in mezzo: "chiudiamo prima, alle 16". */
+function findTimeAfter(text: string, verbs: string): Time | null {
+  const m = text.match(new RegExp(`\\b(?:${verbs})\\b[^\\d]{0,20}?\\b(?:alle|all'|verso le|a)\\s*${TIME}`));
+  return m ? toTime(m[1], m[2]) : null;
+}
+
+function findClose(t: string): Time | null {
+  const after = findTimeAfter(t, 'chiud\\w*|chiusura|fino');
+  if (after) return after;
+  // "fino 18", senza "alle".
+  const bare = t.match(new RegExp(`\\bfino\\s+${TIME}\\b`));
+  return bare ? toTime(bare[1], bare[2]) : null;
+}
+function findOpen(t: string): Time | null {
+  const after = findTimeAfter(t, 'apr\\w*|apertura|apriremo');
+  if (after) return after;
+  // "fino all'una, dalle 18": un "dalle" senza il suo "alle" è l'apertura.
+  const from = t.match(new RegExp(`\\bdall[e']\\s*${TIME}\\b`));
+  return from ? toTime(from[1], from[2]) : null;
+}
+const isClosed = (t: string) =>
+  /\bchius[oiae]\b|\bnon apriamo\b|\bnon (?:siamo|saremo) aperti\b|\bferie\b|\bvacanz[ae]\b|\bnon lavoriamo\b|\b(?:giorno di )?riposo\b/.test(t);
+const isBackToNormal = (t: string) => /\borari[oi]? (normale|regolare|solito|abituale)\b/.test(t);
+
+type DayTarget = { kind: 'weekly'; weekdays: Weekday[] } | { kind: 'dates'; dates: IsoDate[] };
+
+const ALL_DAYS: Weekday[] = [1, 2, 3, 4, 5, 6, 7];
+const WD = `(${WEEKDAY_ALT})`;
+
+/** "dal lunedì al venerdì", "da lunedì a venerdì", "lunedì-venerdì": i giorni in mezzo compresi (anche venerdì → lunedì). */
+function weekdaySpan(text: string): Weekday[] | null {
+  const m = text.match(new RegExp(`\\b(?:dal|da)\\s+${WD}\\s+(?:fino\\s+)?(?:al|a)\\s+${WD}\\b`))
+    ?? text.match(new RegExp(`\\b${WD}\\s*[-–]\\s*${WD}\\b`));
+  if (!m) return null;
+  const from = WEEKDAYS[m[1]];
+  const to = WEEKDAYS[m[2]];
+  const out: Weekday[] = [];
+  for (let d = from; ; d = ((d % 7) + 1) as Weekday) {
+    out.push(d);
+    if (d === to || out.length === 7) break;
   }
   return out;
 }
 
-function findTimeAfter(text: string, verbs: string): Time | null {
-  const m = text.match(new RegExp(`\\b(?:${verbs})\\s+(?:alle|all'|a|verso le)\\s*${TIME}`));
-  return m ? toTime(m[1], m[2]) : null;
+/** "tranne il lunedì", "escluso la domenica", "eccetto sabato e domenica": i giorni da togliere. */
+function exceptDays(text: string): Weekday[] {
+  const m = text.match(/\b(?:tranne|eccetto|escluso|esclusa|esclusi|salvo)\b(.*)$/);
+  if (!m) return [];
+  return [...m[1].matchAll(new RegExp(`\\b${WD}\\b`, 'g'))].map((x) => WEEKDAYS[x[1]]);
 }
 
-const findClose = (t: string) => findTimeAfter(t, 'chiud\\w*|chiusura|fino');
-const findOpen = (t: string) => findTimeAfter(t, 'apr\\w*|apertura|apriremo');
-const isClosed = (t: string) => /\bchius[oiae]\b|\bnon apriamo\b|\bnon siamo aperti\b|\bper ferie\b/.test(t);
-const isBackToNormal = (t: string) => /\borari[oi]? (normale|regolare|solito|abituale)\b/.test(t);
-
-type DayTarget = { kind: 'weekly'; weekday: Weekday } | { kind: 'dates'; dates: IsoDate[] };
-
+/**
+ * Settimanale o una data precisa? Si guarda come la gente lo dice:
+ * "il lunedì", "ogni lunedì", "tutti i lunedì", "dal lunedì al venerdì", "tutti i giorni" → sempre;
+ * "lunedì", "questo lunedì", "lunedì prossimo", "domani", "il 25 dicembre" → solo quel giorno.
+ * Più giorni elencati con i loro orari ("lunedì e martedì 9-13") sono un orario della settimana.
+ */
 function findDays(text: string, today: IsoDate): DayTarget | null {
+  const oneOff = /\b(?:questo|questa|quest'|prossim[oa]|domani|dopodomani|oggi|stasera|stamattina)\b/.test(text);
+  const except = exceptDays(text);
+  const weekly = (days: Weekday[]): DayTarget => ({ kind: 'weekly', weekdays: days.filter((d) => !except.includes(d)) });
+
+  if (!oneOff) {
+    if (/\b(?:tutti i giorni|ogni giorno|tutta la settimana|sempre aperti|7 giorni su 7|sette giorni su sette)\b/.test(text)) return weekly(ALL_DAYS);
+    if (/\b(?:nei |i )?(?:giorni )?feriali\b|\bdal lunedi al venerdi\b/.test(text) && !weekdaySpan(text)) return weekly([1, 2, 3, 4, 5]);
+    if (/\b(?:nel |il |ogni |tutti i )?(?:weekend|fine settimana|fine-settimana)\b/.test(text)) return weekly([6, 7]);
+    const span = weekdaySpan(text);
+    if (span) return weekly(span);
+  }
   // Intervallo: "dal 10 al 20 agosto", "dal 28 dicembre al 2 gennaio"
   const range = text.match(new RegExp(`\\bdal(?:l')?\\s*(\\d{1,2})(?:\\s+(${MONTH_ALT}))?\\s+al(?:l')?\\s*(\\d{1,2})\\s+(${MONTH_ALT})`));
   if (range) {
@@ -96,16 +184,30 @@ function findDays(text: string, today: IsoDate): DayTarget | null {
     return { kind: 'dates', dates: dateRange(from, to) };
   }
 
-  // Settimanale: "ogni sabato", "il lunedì", "tutte le domeniche", "di domenica"
-  const weekly = text.match(new RegExp(`\\b(?:ogni|tutti i|tutte le|il|la|di)\\s+(${WEEKDAY_ALT})\\b`));
-  if (weekly) return { kind: 'weekly', weekday: WEEKDAYS[weekly[1]] };
+  // I giorni nominati, nell'ordine; quelli dopo "tranne" non contano.
+  const head = text.replace(/\b(?:tranne|eccetto|escluso|esclusa|esclusi|salvo)\b.*$/, '');
+  const named = [...new Set([...head.matchAll(new RegExp(`\\b${WD}\\b`, 'g'))].map((m) => WEEKDAYS[m[1]]))];
+  if (named.length && !oneOff) {
+    // Settimanale: "ogni sabato", "il lunedì", "tutte le domeniche", "di domenica", "i sabati", "lunedì: 8-18".
+    const marker = new RegExp(`\\b(?:ogni|tutti i|tutte le|il|la|i|le|di)\\s+${WD}\\b|\\b(?:sabati|domeniche)\\b|^${WD}\\s*:`).test(head);
+    // Giorni con le loro fasce e nessun verbo ("lunedì 8-18", "martedì 9-13 e 15-19", "lunedì e martedì dalle 9 alle 13")
+    // sono l'orario della settimana. Con un verbo ("sabato chiudiamo alle 15", "lunedì apriamo dalle 10") è solo quel giorno.
+    const timetable = findRanges(wordTimes(text)).length > 0 && !/\b(?:apr\w*|chiud\w*|siamo|saremo|restiamo|resteremo|facciamo|faremo)\b/.test(text);
+    if (marker || timetable) return weekly(named);
+  }
 
+  if (/\bweekend\b|\bfine settimana\b/.test(text)) {
+    // "questo weekend", "il prossimo fine settimana": il sabato e la domenica in arrivo.
+    let sat = nextWeekday(today, 6);
+    if (/\bprossim[oa]\b/.test(text) && sat === today) sat = addDays(sat, 7);
+    return { kind: 'dates', dates: [sat, addDays(sat, 1)] };
+  }
   if (/\bdopodomani\b/.test(text)) return { kind: 'dates', dates: [addDays(today, 2)] };
   if (/\bdomani\b/.test(text)) return { kind: 'dates', dates: [addDays(today, 1)] };
-  if (/\boggi\b|\bstasera\b/.test(text)) return { kind: 'dates', dates: [today] };
+  if (/\boggi\b|\bstasera\b|\bstamattina\b/.test(text)) return { kind: 'dates', dates: [today] };
 
-  const named = text.match(new RegExp(`\\b(\\d{1,2})\\s+(${MONTH_ALT})\\b`));
-  if (named) return { kind: 'dates', dates: [upcomingDate(today, MONTHS[named[2]], Number(named[1]))] };
+  const dated = text.match(new RegExp(`\\b(\\d{1,2})\\s+(${MONTH_ALT})\\b`));
+  if (dated) return { kind: 'dates', dates: [upcomingDate(today, MONTHS[dated[2]], Number(dated[1]))] };
 
   const numeric = text.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
   if (numeric) {
@@ -114,12 +216,13 @@ function findDays(text: string, today: IsoDate): DayTarget | null {
     if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return { kind: 'dates', dates: [upcomingDate(today, m, d)] };
   }
 
-  // Giorno singolo: "sabato", "questa domenica", "sabato prossimo"
-  const single = text.match(new RegExp(`\\b(${WEEKDAY_ALT})\\b`));
-  if (single) {
-    let date = nextWeekday(today, WEEKDAYS[single[1]]);
-    if (/\bprossim[oa]\b/.test(text) && date === today) date = addDays(date, 7);
-    return { kind: 'dates', dates: [date] };
+  // Giorni singoli: "sabato", "questa domenica", "sabato prossimo", "sabato e domenica chiusi".
+  if (named.length) {
+    const dates = named.map((d) => {
+      const date = nextWeekday(today, d);
+      return /\bprossim[oa]\b/.test(text) && date === today ? addDays(date, 7) : date;
+    });
+    return { kind: 'dates', dates: [...new Set(dates)].sort() };
   }
   return null;
 }
@@ -176,16 +279,22 @@ function interpretHours(text: string, original: string, data: BusinessData, toda
   const hasTimes = ranges.length > 0 || open !== null || close !== null;
 
   if (target.kind === 'weekly') {
-    if (closed && !hasTimes) return [{ op: 'setWeeklyHours', weekday: target.weekday, slots: [] }];
-    if (ranges.length) return [{ op: 'setWeeklyHours', weekday: target.weekday, slots: ranges }];
-    if (open || close) {
-      const regular = regularDay(data, target.weekday).slots;
-      if (!regular.length && !(open && close)) return null;
-      const slots = regular.length ? adjustSlots(regular, open, close) : [{ opens: open!, closes: close! }];
-      if (!slots || !slots.every((s) => isPossibleSlot(s.opens, s.closes))) return null;
-      return [{ op: 'setWeeklyHours', weekday: target.weekday, slots }];
+    if (!target.weekdays.length) return null;
+    if (ranges.length && !ranges.every((s) => isPossibleSlot(s.opens, s.closes))) return null;
+    const ops: ChangeOp[] = [];
+    // Tutti i giorni nominati, o nessuno: mai mezzo messaggio applicato.
+    for (const weekday of target.weekdays) {
+      if (closed && !hasTimes) ops.push({ op: 'setWeeklyHours', weekday, slots: [] });
+      else if (ranges.length) ops.push({ op: 'setWeeklyHours', weekday, slots: ranges });
+      else if (open || close) {
+        const regular = regularDay(data, weekday).slots;
+        if (!regular.length && !(open && close)) return null;
+        const slots = regular.length ? adjustSlots(regular, open, close) : [{ opens: open!, closes: close! }];
+        if (!slots || !slots.every((s) => isPossibleSlot(s.opens, s.closes))) return null;
+        ops.push({ op: 'setWeeklyHours', weekday, slots });
+      } else return null;
     }
-    return null;
+    return ops;
   }
 
   const note = findNote(original);
@@ -194,6 +303,8 @@ function interpretHours(text: string, original: string, data: BusinessData, toda
     return target.dates.map((date) => ({ op: 'setSpecialHours' as const, date, closed: true, opens: null, closes: null, note }));
   }
   if (!hasTimes) return null;
+  // Un giorno speciale ha una sola fascia: "oggi 9-13 e 15-19" non si può salvare senza perderne una.
+  if (ranges.length > 1) return null;
 
   const ops: ChangeOp[] = [];
   for (const date of target.dates) {
@@ -233,11 +344,13 @@ const parsePrice = (s: string) => Number(s.replace(',', '.'));
 function findPrice(text: string): number | null {
   const withCurrency = text.match(PRICE_WITH_CURRENCY);
   if (withCurrency) return parsePrice(withCurrency[1]);
-  const withVerb = text.match(/\b(?:costa|costano|prezzo|a)\s*(?:di\s*)?(\d+(?:[.,]\d{1,2})?)\s*$/);
+  // "costa 6", "a 6,50", "il prezzo dello spritz è 5,50" (il testo è senza accenti: è → e).
+  const withVerb = text.match(/\b(?:costa|costano|prezzo|a|e|diventa|passa a)\s*(?:di\s*)?(\d+(?:[.,]\d{1,2})?)\s*$/);
   return withVerb ? parsePrice(withVerb[1]) : null;
 }
 
-const ARTICLES = /^(?:il|lo|la|i|gli|le|l'|un|uno|una|un')\s*/i;
+// L'articolo è una parola a sé: "la lasagna" → "lasagna", ma "lasagna" resta intera.
+const ARTICLES = /^(?:(?:il|lo|la|i|gli|le|un|uno|una)\s+|l'|un')/i;
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -263,7 +376,8 @@ function interpretCatalog(text: string, original: string, data: BusinessData): C
       rest = rest.slice(0, descMatch.index);
     }
     rest = rest
-      .replace(/\s*(?:a|al prezzo di|prezzo)?\s*\d+(?:[.,]\d{1,2})?\s*(?:€|euro)?\s*$/i, '')
+      // Il prezzo in fondo, con la sua parola staccata: "lasagna 12 euro" non perde la "a" finale.
+      .replace(/(?:\s+(?:a|al prezzo di|prezzo|da))?\s+\d+(?:[.,]\d{1,2})?\s*(?:€|euro)?\s*$/i, '')
       .replace(/\s*(?:al menu|al menù|al listino)\s*$/i, '')
       .replace(ARTICLES, '')
       .trim();
@@ -300,7 +414,8 @@ function interpretContact(text: string, original: string): ChangeOp[] | null {
   const phone = original.match(/(?:telefono|numero|tel\.?|cellulare|whatsapp)\D{0,25}(\+?\d[\d\s./-]{5,}\d)/i);
   if (phone) return [{ op: 'setContact', field: 'phone', value: phone[1].replace(/\s+/g, ' ').trim() }];
 
-  const address = original.match(/(?:nuovo indirizzo|l'indirizzo è|l'indirizzo e|indirizzo:|ci siamo trasferiti in|ci trovate in|nuova sede in)\s*:?\s*(.+)$/i);
+  // "Il nuovo indirizzo è Via Roma 1": la "è" non fa parte dell'indirizzo.
+  const address = original.match(/(?:nuovo indirizzo(?:\s+(?:è|e)(?=\s))?|indirizzo nuovo|l'indirizzo è|l'indirizzo e|indirizzo:|ci siamo trasferiti in|ci trovate in|nuova sede(?:\s+(?:è|e)(?=\s))?(?:\s+in)?)\s*:?\s*(.+)$/i);
   if (address) return [{ op: 'setContact', field: 'address', value: address[1].trim() }];
 
   const description = original.match(/^\s*(?:descrizione|chi siamo)\s*:\s*(.+)$/i);

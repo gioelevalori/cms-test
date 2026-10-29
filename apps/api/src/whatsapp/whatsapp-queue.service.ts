@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppService, type InboundWhatsApp } from './whatsapp.service';
-import { WhatsAppClient, textPayload, buttonsPayload } from './whatsapp.client';
+import { WhatsAppClient, textPayload, buttonsPayload, listPayload } from './whatsapp.client';
 
 const retryAt = (attempts: number) => new Date(Date.now() + Math.min(300_000, 1000 * 2 ** Math.min(attempts, 9)));
 const errorCode = (err: unknown) => err instanceof Prisma.PrismaClientKnownRequestError
@@ -84,6 +84,7 @@ export class WhatsAppQueueService implements OnModuleInit, OnModuleDestroy {
         await this.whatsapp.handle(job.payload as unknown as InboundWhatsApp, tx, {
           sendText: async (recipient, text) => { responses.push({ recipient, payload: textPayload(text) }); },
           sendButtons: async (recipient, body, buttons) => { responses.push({ recipient, payload: buttonsPayload(body, buttons) }); },
+          sendList: async (recipient, body, button, rows) => { responses.push({ recipient, payload: listPayload(body, button, rows) }); },
         });
         if (responses.length) await tx.whatsAppOutbound.createMany({ data: responses });
         await tx.inboundMessage.update({ where: { id: job.id }, data: { processedAt: new Date(), lastError: null } });

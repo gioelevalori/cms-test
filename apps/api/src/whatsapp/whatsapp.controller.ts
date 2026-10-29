@@ -15,7 +15,7 @@ interface WebhookMessage {
   from: string;
   type: string;
   text?: { body: string };
-  interactive?: { type: string; button_reply?: { id: string; title: string } };
+  interactive?: { type: string; button_reply?: { id: string; title: string }; list_reply?: { id: string; title: string } };
   button?: { payload?: string; text?: string };
   image?: { id: string; caption?: string; mime_type?: string };
 }
@@ -79,7 +79,7 @@ export class WhatsAppController {
             id: m.id,
             from: m.from,
             text: m.type === 'text' ? m.text?.body : undefined,
-            buttonId: m.interactive?.button_reply?.id ?? m.button?.payload,
+            buttonId: m.interactive?.button_reply?.id ?? m.interactive?.list_reply?.id ?? m.button?.payload,
             ...(m.type === 'image' && m.image?.id ? { image: { id: m.image.id, caption: m.image.caption ?? '' } } : {}),
           });
         }

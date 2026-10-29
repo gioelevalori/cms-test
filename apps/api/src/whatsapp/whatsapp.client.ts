@@ -15,6 +15,24 @@ export const buttonsPayload = (body: string, buttons: ReplyButton[]) => ({
   },
 });
 
+export interface ListRow {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+/** Messaggio con menu a lista: un pulsante che apre fino a 10 voci (titolo 24 caratteri, descrizione 72). */
+export const listPayload = (body: string, button: string, rows: ListRow[]) => ({
+  type: 'interactive',
+  interactive: {
+    type: 'list', body: { text: body.slice(0, 1024) },
+    action: {
+      button: button.slice(0, 20),
+      sections: [{ title: 'Cosa puoi fare', rows: rows.slice(0, 10).map((r) => ({ id: r.id, title: r.title.slice(0, 24), ...(r.description ? { description: r.description.slice(0, 72) } : {}) })) }],
+    },
+  },
+});
+
 /** Invio messaggi tramite WhatsApp Cloud API (Graph API di Meta). */
 @Injectable()
 export class WhatsAppClient {
@@ -76,6 +94,10 @@ export class WhatsAppClient {
   /** Messaggio con pulsanti di risposta (massimo 3, titolo massimo 20 caratteri). */
   sendButtons(to: string, body: string, buttons: ReplyButton[]) {
     return this.send(to, buttonsPayload(body, buttons));
+  }
+
+  sendList(to: string, body: string, button: string, rows: ListRow[]) {
+    return this.send(to, listPayload(body, button, rows));
   }
 
   async send(to: string, message: Record<string, unknown>) {

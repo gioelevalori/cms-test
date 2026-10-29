@@ -218,6 +218,19 @@ async function send(messages, to = PHONE) {
   }
   throw new Error(`Nessuna risposta WhatsApp a ${to}`);
 }
+/** Come send, ma aspetta `count` risposte (es. testo + menu) e le restituisce in ordine. */
+async function sendAll(messages, count, to = PHONE) {
+  const start = outbox.length;
+  const res = await webhook(messages);
+  assert.equal(res.status, 200);
+  for (let i = 0; i < 60; i++) {
+    const found = outbox.slice(start).filter((m) => m.status === 200 && m.body.to === to);
+    if (found.length >= count) return found.slice(0, count).map((m) => m.body);
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error(`Meno di ${count} risposte WhatsApp a ${to}`);
+}
+const isMenu = (m) => m.type === 'interactive' && m.interactive.type === 'list' && m.interactive.action.sections[0].rows.some((r) => r.id === 'tip:hours');
 const specialClosingAt = async (closes) => (await publicSite()).data.specialHours.find((s) => s.closes === closes);
 
 await step('WhatsApp: verifica del webhook (GET)', async () => {
@@ -273,8 +286,9 @@ await step('WhatsApp: conferma rispondendo "sì"', async () => {
 });
 
 await step('WhatsApp: messaggio non capito → istruzioni', async () => {
-  const msg = await send([textMsg('Qual è il senso della vita?')]);
+  const [msg, menu] = await sendAll([textMsg('Qual è il senso della vita?')], 2);
   assert.match(msg.text.body, /Non ho capito/);
+  assert.ok(isMenu(menu), JSON.stringify(menu));
 });
 
 await step('WhatsApp: numero non collegato', async () => {
@@ -310,13 +324,21 @@ await step('collegamento con codice: solo per le proprie attività', async () =>
 });
 
 await step('collegamento con codice: il numero che lo invia viene collegato', async () => {
-  const msg = await send([textMsg(`collega ${linkCode.toLowerCase()}`)]);
+  const [msg, menu] = await sendAll([textMsg(`collega ${linkCode.toLowerCase()}`)], 2);
   assert.match(msg.text.body, /Fatto!.*Pizzeria da Mario/s);
+  // Subito il menu con tutto quello che si può fare da WhatsApp.
+  assert.ok(isMenu(menu), JSON.stringify(menu));
   const me = await call('GET', '/auth/me', { token: client });
   assert.equal(me.body.whatsapp, PHONE);
   assert.equal(me.body.whatsappBusinessId, businessId);
-  const help = await send([textMsg('aiuto')]);
+  const [help, helpMenu] = await sendAll([textMsg('aiuto')], 2);
   assert.match(help.text.body, /Pizzeria da Mario/);
+  assert.ok(isMenu(helpMenu));
+  // Una voce del menu risponde con come si fa ed esempi.
+  const hours = await send([{ id: `wamid.in${++seq}`, from: PHONE, timestamp: '1', type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'tip:hours', title: 'Orari' } } }]);
+  assert.match(hours.text.body, /Orari[\s\S]*Il martedì dalle 9 alle 18/);
+  const ideas = await send([{ id: `wamid.in${++seq}`, from: PHONE, timestamp: '1', type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'tip:ideas', title: 'Idee' } } }]);
+  assert.match(ideas.text.body, /Idee per il tuo sito[\s\S]*QR/);
 });
 
 await step('collegamento con codice: un codice si usa una volta sola', async () => {
@@ -359,7 +381,7 @@ await step('numero già associato a un\'altra attività: chiede se spostarlo, An
 });
 
 await step('numero già associato: Conferma lo sposta, e le modifiche vanno solo sul nuovo sito', async () => {
-  const done = await send([buttonMsg(`link-yes:${barCode}`)]);
+  const [done] = await sendAll([buttonMsg(`link-yes:${barCode}`)], 2);
   assert.match(done.text.body, /Fatto!.*Bar Prova/s);
   assert.equal((await call('GET', '/auth/me', { token: client })).body.whatsapp, null);
   assert.equal((await call('GET', '/auth/me', { token: builder })).body.whatsapp, PHONE);
@@ -380,7 +402,7 @@ await step('tipo di attività: sezioni, aiuto WhatsApp e schema.org seguono il t
   // Il numero di prova ora aggiorna Bar Prova: collegarlo allo studio mostra gli esempi da studio legale.
   const code = (await call('POST', '/whatsapp/link', { token: builder, body: { businessId: studio.body.id } })).body.code;
   const ask = await send([textMsg(`COLLEGA ${code}`)]);
-  const done = await send([buttonMsg(ask.interactive.action.buttons[0].reply.id)]);
+  const [done] = await sendAll([buttonMsg(ask.interactive.action.buttons[0].reply.id)], 2);
   assert.match(done.text.body, /Studio Rossi[\s\S]*consulenza iniziale/);
   // Il cliente non può cambiare il tipo; il costruttore sì, e la sezione cambia nome.
   assert.equal((await call('PUT', `/businesses/${businessId}/category`, { token: client, body: { category: 'bar' } })).status, 403);
