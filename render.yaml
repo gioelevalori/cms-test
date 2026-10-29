@@ -35,6 +35,11 @@ services:
         sync: false
       - key: CLOUDINARY_URL
         sync: false
+      # Email "password dimenticata" (Resend). Senza, il link finisce solo nei log.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
       - key: ADMIN_ORIGIN
         sync: false
       - key: PUBLIC_SITE_URL

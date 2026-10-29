@@ -33,6 +33,9 @@ jobs:
       WHATSAPP_API_BASE: http://localhost:3999
       CLOUDINARY_URL: cloudinary://ci-key:ci-secret@ci-cloud
       CLOUDINARY_API_BASE: http://localhost:3998
+      RESEND_API_KEY: test-mail-key
+      RESEND_API_BASE: http://localhost:3997
+      ADMIN_ORIGIN: http://localhost:5173
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -66,6 +69,10 @@ jobs:
           ../../scripts/ci-run.sh db-push npx prisma db push --skip-generate
           ../../scripts/ci-run.sh seed npm run seed
 
+      # Prima di avviare l'API: con l'API accesa la sua coda consuma gli stessi messaggi WhatsApp del test.
+      - name: Test affidabilità WhatsApp e concorrenza
+        run: scripts/ci-run.sh reliability npm run test:reliability -w @cms/api
+
       - name: Avvia API e sito
         run: |
           node apps/api/dist/main.js > api.log 2>&1 &
@@ -75,9 +82,6 @@ jobs:
 
       - name: Test end-to-end API
         run: scripts/ci-run.sh e2e npm run e2e -w @cms/api
-
-      - name: Test affidabilità WhatsApp e concorrenza
-        run: scripts/ci-run.sh reliability npm run test:reliability -w @cms/api
 
       - name: Test del sito pubblico
         run: |

@@ -87,6 +87,8 @@ export interface WhatsAppLink { code: string; message: string; expiresAt: string
 
 export const api = {
   me: () => request<Me>('/auth/me'),
+  forgotPassword: (email: string) => post<{ ok: true }>('/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string) => post<{ accessToken: string }>('/auth/reset-password', { token, password }),
   whatsAppLink: (businessId: string) => post<WhatsAppLink>('/whatsapp/link', { businessId }),
   unlinkWhatsApp: () => request<Me>('/auth/me/whatsapp', { method: 'PUT', body: JSON.stringify({ phone: '' }) }),
   login: (email: string, password: string) => post<{ accessToken: string }>('/auth/login', { email, password }),

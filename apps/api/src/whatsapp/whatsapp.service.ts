@@ -114,7 +114,9 @@ export class WhatsAppService {
   /** Foto con didascalia: "copertina", il nome di una voce, "Aggiungi la tagliata a 18 euro" o niente (galleria). */
   private async photo(db: Prisma.TransactionClient, reply: Replies, userId: string, to: string, businessId: string, image: { id: string; caption?: string }) {
     if (!this.media?.enabled) {
-      return reply.sendText(to, 'Le foto da WhatsApp non sono ancora attive su questo sito. Per ora aggiungile dal pannello.');
+      // Senza Cloudinary non funziona nemmeno il caricamento dal pannello: non mandiamo lì il titolare.
+      this.logger.warn('Foto da WhatsApp ricevuta ma CLOUDINARY_URL non è impostato: foto non salvata');
+      return reply.sendText(to, 'Le foto non sono ancora attive su questo sito: chi l\'ha costruito deve completare la configurazione. Intanto puoi aggiornare testi, orari e prezzi scrivendo.');
     }
     const url = await this.media.toCloudinary(image.id, businessId);
     const change = await this.changes.proposeFromPhoto(userId, businessId, (image.caption ?? '').trim(), url, db);

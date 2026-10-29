@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Put, UseGuards } from '@nestjs/common';
 import { IsString, MaxLength } from 'class-validator';
 import { BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto } from './auth.dto';
+import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './auth.dto';
 import { JwtGuard } from './jwt.guard';
 import { AuthUser, CurrentUser } from '../common/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -34,6 +34,20 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  /** Sempre la stessa risposta: non dice se l'email ha un account. */
+  @Post('forgot-password')
+  @HttpCode(200)
+  async forgot(@Body() dto: ForgotPasswordDto) {
+    await this.auth.forgotPassword(dto.email);
+    return { ok: true };
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  reset(@Body() dto: ResetPasswordDto) {
+    return this.auth.resetPassword(dto.token, dto.password);
   }
 
   @Get('me')

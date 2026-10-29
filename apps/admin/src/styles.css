@@ -471,3 +471,6 @@ button.link:hover:not(:disabled) { background: none; text-decoration: underline;
 .facts li.is-ok { background: #e7f6ec; color: #14532d; }
 .fact-dot { width: 8px; height: 8px; border: 1.5px solid currentColor; border-radius: 50%; }
 .google-card .hint { margin: 10px 0 8px; }
+.forgot-link { align-self: flex-end; margin-top: -6px; font-size: 13.5px; }
+.auth-single { grid-template-columns: 1fr !important; }
+.auth-single .auth-form-side { max-width: 560px; }

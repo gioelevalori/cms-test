@@ -6,7 +6,7 @@ import { ChatIcon, CheckIcon, EyeIcon, SearchIcon } from '../components/Icons';
 /** Accesso, oppure creazione dell'account: chi si registra poi aggiunge la sua attività. */
 export function LoginPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +35,7 @@ export function LoginPage() {
       <section className="auth-form-side">
         <div className="auth-mark"><span className="auth-mark-icon"><ChatIcon size={18} /></span>Pannello del sito</div>
 
+        {mode === 'forgot' ? <ForgotForm initialEmail={email} onBack={() => { setMode('login'); setError(null); }} /> : (
         <form className="auth-form" onSubmit={onSubmit}>
           <h1>{registering ? 'Crea il tuo account' : 'Accedi al tuo sito'}</h1>
           <p className="auth-lead">
@@ -62,7 +63,9 @@ export function LoginPage() {
               </button>
             </span>
           </label>
-          {registering && <p className="hint">Almeno 8 caratteri.</p>}
+          {registering ? <p className="hint">Almeno 8 caratteri.</p> : (
+            <button type="button" className="link small forgot-link" onClick={() => { setMode('forgot'); setError(null); }}>Password dimenticata?</button>
+          )}
           {error && <p className="error" role="alert">{error}</p>}
           <button type="submit" className="auth-submit" disabled={busy}>
             {busy ? 'Un attimo…' : registering ? 'Crea account' : 'Entra'}
@@ -74,6 +77,7 @@ export function LoginPage() {
             </button>
           </p>
         </form>
+        )}
 
         <p className="auth-foot">Il sito si aggiorna anche da WhatsApp, quando colleghi il tuo numero.</p>
       </section>
@@ -104,5 +108,51 @@ export function LoginPage() {
         </ul>
       </aside>
     </main>
+  );
+}
+
+/** "Password dimenticata": si scrive l'email, arriva un link. La risposta è la stessa per tutti gli indirizzi. */
+function ForgotForm({ initialEmail, onBack }: { initialEmail: string; onBack: () => void }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await api.forgotPassword(email.trim());
+      setSent(true);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (sent) {
+    return (
+      <div className="auth-form" role="status">
+        <h1>Controlla la tua email</h1>
+        <p className="auth-lead">
+          Se <strong>{email.trim()}</strong> ha un account, ti abbiamo mandato un link per scegliere una nuova password. Vale 30 minuti.
+        </p>
+        <p className="hint">Non arriva? Guarda nello spam, oppure riprova tra qualche minuto.</p>
+        <button type="button" className="ghost" onClick={onBack}>Torna all'accesso</button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="auth-form" onSubmit={onSubmit}>
+      <h1>Password dimenticata</h1>
+      <p className="auth-lead">Scrivi l'email con cui accedi: ti mandiamo un link per sceglierne una nuova.</p>
+      <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" placeholder="nome@esempio.it" required autoFocus /></label>
+      {error && <p className="error" role="alert">{error}</p>}
+      <button type="submit" className="auth-submit" disabled={busy}>{busy ? 'Un attimo…' : 'Mandami il link'}</button>
+      <p className="auth-switch"><button type="button" className="link" onClick={onBack}>Torna all'accesso</button></p>
+    </form>
   );
 }

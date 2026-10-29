@@ -174,6 +174,20 @@ const cloudinary = http.createServer((req, res) => {
 });
 await new Promise((r) => cloudinary.listen(3998, r));
 
+// Resend finto: raccoglie le email che l'API manderebbe.
+const mails = [];
+const mailer = http.createServer((req, res) => {
+  let raw = '';
+  req.on('data', (c) => (raw += c));
+  req.on('end', () => {
+    if (req.url !== '/emails' || req.headers.authorization !== 'Bearer test-mail-key') { res.writeHead(401); return res.end(); }
+    mails.push(JSON.parse(raw));
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ id: `mail-${mails.length}` }));
+  });
+});
+await new Promise((r) => mailer.listen(3997, r));
+
 const PHONE = '393331234567';
 const SECRET = process.env.WHATSAPP_APP_SECRET ?? 'ci-app-secret';
 let seq = 0;
@@ -475,6 +489,34 @@ await step('editor: la bozza si pubblica in una modifica sola (ordine di sezioni
   assert.equal(bad.status, 400);
 });
 
+await step('password dimenticata: email con link, nuova password, link usa e getta', async () => {
+  // Stessa risposta per chi non ha un account: non si scopre chi è registrato.
+  const unknown = await call('POST', '/auth/forgot-password', { body: { email: 'nessuno@example.com' } });
+  assert.equal(unknown.status, 200);
+  assert.equal(mails.length, 0);
+  const ask = await call('POST', '/auth/forgot-password', { body: { email: 'cliente@example.com' } });
+  assert.deepEqual([ask.status, ask.body], [200, { ok: true }]);
+  assert.equal(mails.length, 1);
+  assert.deepEqual(mails[0].to, ['cliente@example.com']);
+  const token = mails[0].text.match(/#\/reimposta\?codice=([\w-]+)/)?.[1];
+  assert.ok(token, mails[0].text);
+  assert.equal((await call('POST', '/auth/reset-password', { body: { token, password: 'corta' } })).status, 400);
+  assert.equal((await call('POST', '/auth/reset-password', { body: { token: 'x'.repeat(43), password: 'nuovapassword1' } })).status, 400);
+  const ok = await call('POST', '/auth/reset-password', { body: { token, password: 'nuovapassword1' } });
+  assert.equal(ok.status, 200, JSON.stringify(ok.body));
+  assert.ok(ok.body.accessToken);
+  assert.equal((await call('POST', '/auth/login', { body: { email: 'cliente@example.com', password: 'password123' } })).status, 401);
+  assert.equal((await call('POST', '/auth/login', { body: { email: 'cliente@example.com', password: 'nuovapassword1' } })).status, 201);
+  assert.equal((await call('POST', '/auth/reset-password', { body: { token, password: 'altrapassword1' } })).status, 400);
+  // Un link nuovo annulla quelli vecchi non usati.
+  await call('POST', '/auth/forgot-password', { body: { email: 'cliente@example.com' } });
+  await call('POST', '/auth/forgot-password', { body: { email: 'cliente@example.com' } });
+  const [older, newer] = mails.slice(-2).map((m) => m.text.match(/codice=([\w-]+)/)[1]);
+  assert.equal((await call('POST', '/auth/reset-password', { body: { token: older, password: 'password123' } })).status, 400);
+  assert.equal((await call('POST', '/auth/reset-password', { body: { token: newer, password: 'password123' } })).status, 200);
+});
+
 graph.close();
 cloudinary.close();
+mailer.close();
 console.log(`\n${passed} controlli superati`);

@@ -33,6 +33,20 @@ model User {
   memberships  Membership[]
   changes      Change[]
   whatsappLinks WhatsAppLink[]
+  passwordResets PasswordReset[]
+}
+
+/// Richiesta di nuova password: nel database solo l'impronta (sha256) del codice mandato per email.
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 /// Codice monouso per collegare un numero WhatsApp: il titolare lo invia dal suo telefono,
