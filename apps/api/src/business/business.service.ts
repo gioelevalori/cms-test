@@ -1,5 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { categoryProfile, isValidLayout, layoutFor } from '@cms/shared';
+import { categoryProfile, isValidLayout, layoutFor, openStatus, resolveSite, timeIn, todayIn } from '@cms/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { BusinessDataService } from './business-data.service';
 import { MembershipService } from './membership.service';
@@ -19,7 +19,33 @@ export class BusinessService {
       include: { business: { select: { id: true, slug: true, name: true } } },
       orderBy: { business: { name: 'asc' } },
     });
-    return rows.map((r) => ({ ...r.business, role: r.role }));
+    const ids = rows.map((r) => r.business.id);
+    const [pending, applied, timezones] = await Promise.all([
+      this.prisma.change.groupBy({ by: ['businessId'], where: { businessId: { in: ids }, status: 'proposed' }, _count: true }),
+      this.prisma.change.groupBy({ by: ['businessId'], where: { businessId: { in: ids }, status: 'applied' }, _max: { appliedAt: true } }),
+      this.prisma.business.findMany({ where: { id: { in: ids } }, select: { id: true, timezone: true } }),
+    ]);
+    // Per la pagina "Le tue attività": com'è il sito, se è aperto adesso, cosa aspetta una conferma.
+    return Promise.all(rows.map(async (r) => {
+      const data = await this.data.load(r.business.id);
+      const timezone = timezones.find((t) => t.id === r.business.id)?.timezone ?? 'Europe/Rome';
+      const site = resolveSite(data);
+      return {
+        ...r.business,
+        role: r.role,
+        category: data.category,
+        categoryLabel: categoryProfile(data.category).label,
+        logo: data.logo ?? null,
+        cover: data.cover ?? null,
+        accent: site.accent,
+        look: site.look,
+        status: openStatus(data, todayIn(timezone), timeIn(timezone)),
+        items: data.catalog.length,
+        photos: (data.photos ?? []).length,
+        pending: pending.find((p) => p.businessId === r.business.id)?._count ?? 0,
+        updatedAt: applied.find((a) => a.businessId === r.business.id)?._max.appliedAt ?? null,
+      };
+    }));
   }
 
   async get(userId: string, businessId: string) {

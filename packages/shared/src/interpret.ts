@@ -352,11 +352,12 @@ export function interpretMessage(message: string, data: BusinessData, today: Iso
 
 /**
  * Una foto arrivata con una didascalia (da WhatsApp o dal pannello) diventa:
- * copertina se la didascalia lo dice, la foto di una voce nuova o esistente se la nomina,
+ * logo o copertina se la didascalia lo dice, la foto di una voce nuova o esistente se la nomina,
  * altrimenti una foto della galleria con la didascalia.
  */
 export function interpretPhoto(caption: string, url: string, data: BusinessData, today: IsoDate): Interpretation {
   const text = normalize(caption);
+  if (/\blogo\b/.test(text)) return { ops: [{ op: 'setLogo', url }], unrecognized: [] };
   if (/\bcopertina\b/.test(text)) return { ops: [{ op: 'setCover', url }], unrecognized: [] };
 
   const fromText = text ? interpretMessage(caption, data, today) : { ops: [], unrecognized: [] };

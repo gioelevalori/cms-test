@@ -58,6 +58,16 @@ await step('prima della conferma il sito pubblico non cambia', async () => {
   assert.equal(site.data.catalog.find((i) => i.name === 'Carbonara').available, true);
 });
 
+await step('anteprima: il sito come sarà, solo per la sua attività', async () => {
+  const res = await call('GET', `/public/businesses/pizzeria-da-mario/preview/${changeId}`);
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body.preview.status, 'proposed');
+  assert.equal(res.body.preview.summary.length, 2);
+  assert.equal(res.body.data.specialHours.length, 1);
+  assert.equal(res.body.data.catalog.find((i) => i.name === 'Carbonara').available, false);
+  assert.equal((await call('GET', '/public/businesses/pizzeria-da-mario/preview/non-esiste')).status, 404);
+});
+
 await step('conferma: il sito pubblico mostra i nuovi dati e lo schema.org', async () => {
   const res = await call('POST', `/changes/${changeId}/confirm`, { token: client });
   assert.equal(res.status, 201, JSON.stringify(res.body));
@@ -216,6 +226,7 @@ await step('WhatsApp: messaggio → anteprima con pulsanti Conferma/Annulla', as
   assert.equal(proposal.type, 'interactive');
   assert.match(proposal.interactive.body.text, /16:00/);
   assert.deepEqual(proposal.interactive.action.buttons.map((b) => b.reply.title), ['Conferma', 'Annulla']);
+  if (process.env.PUBLIC_SITE_URL) assert.match(proposal.interactive.body.text, /Guarda l'anteprima: http\S+\/pizzeria-da-mario\/anteprima\/\w+/);
   assert.equal(await specialClosingAt('16:00'), undefined, 'non ancora applicato');
 });
 
@@ -378,12 +389,14 @@ await step('foto dal pannello: caricamento, copertina, galleria e foto di una vo
   const site = (await publicSite()).data;
   const itemId = site.catalog[0].id;
   const p = await call('POST', `/businesses/${businessId}/changes`, { token: client, body: { ops: [
-    { op: 'setCover', url }, { op: 'addPhoto', url, caption: 'La sala' }, { op: 'setItemImage', itemId, url },
+    { op: 'setCover', url }, { op: 'setLogo', url }, { op: 'addPhoto', url, caption: 'La sala' }, { op: 'setItemImage', itemId, url },
   ] } });
   assert.equal(p.status, 201, JSON.stringify(p.body));
   assert.equal((await call('POST', `/changes/${p.body.id}/confirm`, { token: client })).status, 201);
   const after = (await publicSite()).data;
   assert.equal(after.cover, url);
+  assert.equal(after.logo, url);
+  assert.equal((await publicSite()).schemaOrg.logo, url);
   assert.deepEqual(after.photos.map((x) => x.caption), ['La sala']);
   assert.equal(after.catalog[0].image, url);
 });
@@ -397,6 +410,15 @@ await step('foto da WhatsApp: con "copertina" nella didascalia diventa la copert
   const done = await send([buttonMsg(p.interactive.action.buttons[0].reply.id)]);
   assert.match(done.text.body, /Fatto/);
   assert.equal(uploads.length, 2);
+});
+
+await step('logo da WhatsApp: con "logo" nella didascalia diventa il logo', async () => {
+  const msg = { id: `wamid.in${++seq}`, from: PHONE, timestamp: '1', type: 'image', image: { id: 'media-foto', caption: 'Ecco il logo', mime_type: 'image/jpeg' } };
+  const p = await send([msg]);
+  assert.match(p.interactive.body.text, /Nuovo logo/);
+  const done = await send([buttonMsg(p.interactive.action.buttons[0].reply.id)]);
+  assert.match(done.text.body, /Fatto/);
+  assert.equal(uploads.length, 3);
 });
 
 await step('aspetto del sito da WhatsApp: stile, colore e sezioni con anteprima, poi sul sito', async () => {

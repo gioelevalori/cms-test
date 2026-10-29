@@ -73,6 +73,7 @@ export function toSchemaOrg(data: BusinessData, url: string): Record<string, unk
     name: data.name,
     description: data.description || undefined,
     image: images.length ? images : undefined,
+    logo: data.logo || undefined,
     url,
     telephone: data.phone || undefined,
     email: data.email || undefined,

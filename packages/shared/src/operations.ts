@@ -22,6 +22,7 @@ export type ChangeOp =
   | { op: 'addPost'; kind: PostKind; title: string; body: string; startsAt: IsoDate | null; endsAt: IsoDate | null }
   | { op: 'setContact'; field: 'phone' | 'email' | 'address' | 'description'; value: string }
   | { op: 'setCover'; url: string | null }
+  | { op: 'setLogo'; url: string | null }
   | { op: 'addPhoto'; url: string; caption: string }
   | { op: 'removePhoto'; photoId: string }
   | { op: 'setItemImage'; itemId: string; url: string | null }
@@ -85,6 +86,7 @@ export function isValidOp(value: unknown): value is ChangeOp {
     case 'setContact':
       return CONTACT_FIELDS.includes(o.field as string) && isStr(o.value, 2000);
     case 'setCover':
+    case 'setLogo':
       return o.url === null || isPhotoUrl(o.url);
     case 'addPhoto':
       return isPhotoUrl(o.url) && isStr(o.caption, 200);
@@ -161,6 +163,9 @@ export function applyOps(input: BusinessData, ops: ChangeOp[], newId: IdGenerato
         break;
       case 'setCover':
         data.cover = op.url;
+        break;
+      case 'setLogo':
+        data.logo = op.url;
         break;
       case 'addPhoto':
         data.photos = [...(data.photos ?? []), { id: newId(), url: op.url, caption: op.caption }];
@@ -262,6 +267,8 @@ export function describeOp(op: ChangeOp, data: BusinessData): string {
     }
     case 'setCover':
       return op.url ? 'Nuova foto di copertina' : 'Togli la foto di copertina';
+    case 'setLogo':
+      return op.url ? 'Nuovo logo' : "Togli il logo: al suo posto l'iniziale del nome";
     case 'addPhoto':
       return `Nuova foto nella galleria${op.caption ? `: ${op.caption}` : ''}`;
     case 'removePhoto': {

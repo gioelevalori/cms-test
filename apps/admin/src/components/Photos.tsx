@@ -9,7 +9,7 @@ interface Props {
   onOps: (ops: ChangeOp[]) => void;
 }
 
-/** Copertina e galleria del sito. Ogni foto entra con una modifica normale, quindi si può annullare. */
+/** Logo, copertina e galleria del sito. Ogni foto entra con una modifica normale, quindi si può annullare. */
 export function Photos({ data, busy, upload, onOps }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +33,23 @@ export function Photos({ data, busy, upload, onOps }: Props) {
 
   return (
     <section className="card photos">
-      <h2>Foto</h2>
+      <h2>Logo e foto</h2>
+
+      <h3>Logo</h3>
+      <div className="cover-row">
+        {data.logo ? (
+          <img className="logo-thumb" src={photoUrl(data.logo, { w: 240 })} alt="Logo dell'attività" />
+        ) : (
+          <span className="logo-thumb logo-empty" aria-hidden="true">{data.name.charAt(0)}</span>
+        )}
+        <div className="logo-side">
+          <p className="muted small">{data.logo ? 'Si vede in alto sul sito, in fondo alla pagina e nella scheda del browser.' : "Senza logo il sito usa l'iniziale del nome. Meglio un PNG con lo sfondo trasparente."}</p>
+          <div className="photo-actions">
+            <FilePick label={data.logo ? 'Cambia' : 'Carica logo'} disabled={disabled} onFiles={(f) => add(f.slice(0, 1), ([url]) => [{ op: 'setLogo', url }])} />
+            {data.logo && <button className="ghost small" disabled={disabled} onClick={() => onOps([{ op: 'setLogo', url: null }])}>Togli</button>}
+          </div>
+        </div>
+      </div>
 
       <h3>Copertina</h3>
       <div className="cover-row">

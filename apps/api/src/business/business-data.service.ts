@@ -40,6 +40,7 @@ export class BusinessDataService {
       email: b.email,
       address: b.address,
       cover: b.coverUrl,
+      logo: b.logoUrl,
       site: siteFromTheme(b.theme),
       photos: b.photos.map((p) => ({ id: p.id, url: p.url, caption: p.caption })),
       openingHours: b.openingHours.map((h) => ({ weekday: h.weekday as Weekday, opens: h.opens, closes: h.closes })),
@@ -54,8 +55,9 @@ export class BusinessDataService {
     await tx.business.update({
       where: { id: businessId },
       data: { name: data.name, category: data.category, description: data.description, phone: data.phone, email: data.email, address: data.address, coverUrl: data.cover ?? null,
-        // Gli snapshot salvati prima delle impostazioni del sito non le hanno: si lasciano com'erano.
-        ...(data.site ? { theme: data.site as Prisma.InputJsonValue } : {}) },
+        // Gli snapshot salvati prima delle impostazioni del sito o del logo non li hanno: si lasciano com'erano.
+        ...(data.site ? { theme: data.site as Prisma.InputJsonValue } : {}),
+        ...(data.logo !== undefined ? { logoUrl: data.logo } : {}) },
     });
     await tx.openingHours.deleteMany({ where: { businessId } });
     await tx.specialHours.deleteMany({ where: { businessId } });

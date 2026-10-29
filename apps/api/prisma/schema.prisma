@@ -60,6 +60,8 @@ model Business {
   address      String          @default("")
   /// Foto di copertina (URL Cloudinary)
   coverUrl     String?
+  /// Logo dell'attività (URL Cloudinary)
+  logoUrl      String?
   timezone     String          @default("Europe/Rome")
   /// Colori e font scelti dal costruttore
   theme        Json            @default("{}")

@@ -70,6 +70,8 @@ export interface BusinessData {
   address: string;
   /** Foto di copertina in cima al sito. Assente nei dati salvati prima delle foto. */
   cover?: string | null;
+  /** Logo dell'attività (meglio PNG trasparente o SVG). Assente nei dati salvati prima del logo. */
+  logo?: string | null;
   /** Galleria, nell'ordine in cui si mostra. */
   photos?: Photo[];
   /** Aspetto del sito: stile, colore, testi, sezioni, social. */

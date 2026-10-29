@@ -22,7 +22,7 @@ function help(category = ''): string {
     'Scrivimi cosa cambia, come lo diresti a un collaboratore. Per esempio:',
     ...categoryProfile(category).examples.map((e) => `• ${e}`),
     '',
-    'Puoi mandare anche una foto: scrivi "copertina" o il nome di una voce nella didascalia, altrimenti va nella galleria.',
+    'Puoi mandare anche una foto: scrivi "logo", "copertina" o il nome di una voce nella didascalia, altrimenti va nella galleria.',
     '',
     'Ti mostro sempre l’anteprima prima di cambiare il sito. Scrivi "annulla" per annullare l’ultima modifica.',
   ].join('\n');
@@ -85,7 +85,7 @@ export class WhatsAppService {
       if (!('id' in result)) {
         return await reply.sendText(msg.from, `Non ho capito il messaggio.\n\n${helpText}`);
       }
-      await this.preview(reply, msg.from, result);
+      await this.preview(db, reply, msg.from, businessId, result);
     } catch (err) {
       // Un errore tecnico fa rollback e verrà ritentato. Un conflitto del cliente è definitivo.
       if (!(err instanceof HttpException) || err.getStatus() >= 500) throw err;
@@ -93,13 +93,22 @@ export class WhatsAppService {
     }
   }
 
-  private preview(reply: Replies, to: string, change: { id: string; summary: string[]; unrecognized: string[] }) {
+  private async preview(db: Prisma.TransactionClient, reply: Replies, to: string, businessId: string, change: { id: string; summary: string[]; unrecognized: string[] }) {
     const lines = change.summary.map((s) => `• ${s}`).join('\n');
     const unclear = change.unrecognized.length ? `\n\nNon ho capito: “${change.unrecognized.join('”, “')}”` : '';
-    return reply.sendButtons(to, `Ecco cosa cambierà:\n${lines}${unclear}\n\nConfermi?`, [
+    const link = await this.previewLink(db, businessId, change.id);
+    return reply.sendButtons(to, `Ecco cosa cambierà:\n${lines}${unclear}${link}\n\nConfermi?`, [
       { id: `confirm:${change.id}`, title: 'Conferma' },
       { id: `reject:${change.id}`, title: 'Annulla' },
     ]);
+  }
+
+  /** Link al sito come sarà dopo la modifica; vuoto se l'indirizzo pubblico del sito non è configurato. */
+  private async previewLink(db: Prisma.TransactionClient, businessId: string, changeId: string) {
+    const base = process.env.PUBLIC_SITE_URL?.replace(/\/$/, '');
+    if (!base) return '';
+    const business = await db.business.findUnique({ where: { id: businessId }, select: { slug: true } });
+    return business ? `\n\nGuarda l'anteprima: ${base}/${business.slug}/anteprima/${changeId}` : '';
   }
 
   /** Foto con didascalia: "copertina", il nome di una voce, "Aggiungi la tagliata a 18 euro" o niente (galleria). */
@@ -109,7 +118,7 @@ export class WhatsAppService {
     }
     const url = await this.media.toCloudinary(image.id, businessId);
     const change = await this.changes.proposeFromPhoto(userId, businessId, (image.caption ?? '').trim(), url, db);
-    return this.preview(reply, to, change);
+    return this.preview(db, reply, to, businessId, change);
   }
 
   /**

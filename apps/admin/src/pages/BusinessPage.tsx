@@ -9,6 +9,7 @@ import { History } from '../components/History';
 import { SiteCard } from '../components/SiteCard';
 import { WhatsAppCard } from '../components/WhatsAppCard';
 import { Photos } from '../components/Photos';
+import { SitePreview } from '../components/SitePreview';
 
 export function BusinessPage() {
   const { businessId = '' } = useParams();
@@ -18,10 +19,13 @@ export function BusinessPage() {
   const isBuilder = business.data ? canEditStructure(business.data.role) : false;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['business', businessId] });
     qc.invalidateQueries({ queryKey: ['changes', businessId] });
+    setVersion((v) => v + 1);
   };
 
   async function run(fn: () => Promise<unknown>) {
@@ -55,6 +59,8 @@ export function BusinessPage() {
   if (business.error) return <p className="container error">{(business.error as Error).message}</p>;
   const b = business.data!;
   const examples = examplesFor(b.data, todayIn(b.timezone));
+  const siteUrl = `${SITE_URL}/${b.slug}`;
+  const previewHref = (changeId: string) => `${siteUrl}/anteprima/${changeId}`;
 
   return (
     <div className="container wide">
@@ -71,17 +77,18 @@ export function BusinessPage() {
             </label>
           )}
         </div>
-        <a className="button ghost" href={`${SITE_URL}/${b.slug}`} target="_blank" rel="noreferrer">Vedi il sito ↗</a>
+        <a className="button ghost" href={siteUrl} target="_blank" rel="noreferrer">Vedi il sito ↗</a>
       </header>
       {error && <p className="error">{error}</p>}
 
       <div className="grid">
         <div className="col">
-          <Chat businessId={businessId} examples={examples} onApplied={refresh} />
+          <Chat businessId={businessId} examples={examples} onApplied={refresh} onPending={setPending} previewHref={previewHref} />
           <WhatsAppCard businessId={businessId} businessName={b.data.name} example={examples[0]} />
           <History changes={changes.data ?? []} onUndo={undo} busy={busy} />
         </div>
         <div className="col">
+          <SitePreview siteUrl={siteUrl} previewUrl={pending ? previewHref(pending) : null} version={version} />
           <SiteCard data={b.data} canStructure={isBuilder} busy={busy} onOps={applyOps} />
           <Photos data={b.data} busy={busy} upload={upload} onOps={applyOps} />
           <BusinessDataView data={b.data} onOps={applyOps} busy={busy} upload={upload} />

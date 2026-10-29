@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { api, ApiError, type Change, type ChatResult } from '../api/client';
 
 interface Props {
@@ -6,20 +6,35 @@ interface Props {
   /** Messaggi d'esempio adatti a questa attività. */
   examples: string[];
   onApplied: () => void;
+  /** La proposta in attesa (o nessuna), per mostrare il sito com'è con la modifica. */
+  onPending: (changeId: string | null) => void;
+  previewHref: (changeId: string) => string;
 }
 
 /** Il cuore del CMS: si scrive cosa cambia, si vede l'anteprima, si conferma. */
-export function Chat({ businessId, examples, onApplied }: Props) {
+export function Chat({ businessId, examples, onApplied, onPending, previewHref }: Props) {
   const [message, setMessage] = useState('');
-  const [result, setResult] = useState<ChatResult | null>(null);
+  const [result, setResultState] = useState<ChatResult | null>(null);
+  const setResult = (r: ChatResult | null) => {
+    setResultState(r);
+    onPending(r?.status === 'proposed' ? r.id : null);
+  };
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  // La conferma resta visibile qualche secondo, poi si ritira da sola.
+  useEffect(() => {
+    if (!done) return;
+    const t = setTimeout(() => setDone(false), 3500);
+    return () => clearTimeout(t);
+  }, [done]);
 
   async function send(e?: FormEvent) {
     e?.preventDefault();
     if (!message.trim()) return;
     setBusy(true);
     setError(null);
+    setDone(false);
     setResult(null);
     try {
       setResult(await api.chat(businessId, message.trim()));
@@ -37,6 +52,7 @@ export function Chat({ businessId, examples, onApplied }: Props) {
       if (confirm) {
         await api.confirm(change.id);
         setMessage('');
+        setDone(true);
         onApplied();
       } else {
         await api.reject(change.id);
@@ -72,6 +88,7 @@ export function Chat({ businessId, examples, onApplied }: Props) {
       )}
 
       {error && <p className="error">{error}</p>}
+      {done && <p className="done-note" role="status">Fatto: il sito è aggiornato.</p>}
 
       {result?.status === 'not_understood' && (
         <div className="proposal muted">
@@ -83,6 +100,7 @@ export function Chat({ businessId, examples, onApplied }: Props) {
         <div className="proposal">
           <p className="label">Ecco cosa cambierà:</p>
           <ul>{result.summary.map((s, i) => <li key={i}>{s}</li>)}</ul>
+          <a className="preview-link" href={previewHref(result.id)} target="_blank" rel="noreferrer">Guarda l'anteprima del sito ↗</a>
           {result.unrecognized.length > 0 && (
             <p className="hint">Non ho capito: “{result.unrecognized.join('”, “')}”</p>
           )}

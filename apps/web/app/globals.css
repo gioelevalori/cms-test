@@ -23,6 +23,7 @@ a { color: inherit; }
   background: #fff;
 }
 .site main { display: block; }
+.site ::selection { background: color-mix(in srgb, var(--accent) 24%, transparent); color: inherit; }
 .icon { flex: none; }
 
 /* Barra informazioni */
@@ -35,6 +36,12 @@ a { color: inherit; }
 .site-header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; padding: 14px clamp(18px, 5cqi, 40px); background: #fff; border-bottom: 1px solid var(--line); }
 .site-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; margin-right: auto; }
 .site-logo { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 11px; background: var(--accent); color: #fff; font-weight: 700; font-size: 18px; }
+/* Logo vero: altezza fissa, larghezza libera (anche loghi orizzontali). Sui fondi scuri sta su una targhetta chiara. */
+.site-logo-img { display: inline-flex; align-items: center; flex: none; }
+.site-logo-img img { display: block; width: auto; height: 44px; max-width: 160px; object-fit: contain; }
+.site-footer .site-logo-img, .site[data-look='energia'] .site-header .site-logo-img, .site[data-look='bottega'] .site-footer .site-logo-img { padding: 5px 8px; border-radius: 10px; background: #fff; }
+.site-footer .site-logo-img img { height: 38px; }
+@container (max-width: 560px) { .site-logo-img img { height: 38px; max-width: 120px; } }
 .site-name { display: block; font-family: var(--display); font-weight: var(--display-weight); font-size: 16px; letter-spacing: -.01em; line-height: 1.2; }
 .site-tagline { display: block; font-size: 12.5px; color: var(--muted); }
 .site-nav { display: flex; flex-wrap: wrap; gap: 6px 22px; }
@@ -56,9 +63,14 @@ a { color: inherit; }
 .site-hero.no-photo .site-hero-text { padding-top: clamp(64px, 12cqi, 120px); }
 .site-hero h1 { margin: 0; max-width: 14ch; font-family: var(--display); font-size: clamp(38px, 8cqi, 76px); font-weight: var(--display-weight); line-height: .98; letter-spacing: var(--display-tracking); text-transform: var(--display-case); }
 .site-lead { margin: 18px 0 0; max-width: 46ch; font-size: clamp(16px, 2.2cqi, 19px); color: rgb(255 255 255 / .92); }
-.site-status { display: inline-flex; align-items: center; gap: 9px; margin: 26px 0 0; padding: 9px 16px; border-radius: 999px; background: #fff; color: var(--ink); font-weight: 600; font-size: 15px; }
-.dot { width: 9px; height: 9px; border-radius: 50%; background: #1f9d55; }
-.site-status.is-closed .dot { background: #d64545; }
+.site-status { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 9px; margin: 26px 0 0; padding: 9px 16px; border-radius: 999px; background: #fff; color: var(--ink); font-size: 15px; }
+.site-status strong { font-weight: 650; }
+.status-detail { color: #3f4751; }
+.status-detail::before { content: '·'; margin-right: 9px; color: #8a929c; }
+.dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #1f9d55; box-shadow: 0 0 0 3px rgb(31 157 85 / .18); }
+.site-status.is-soon .dot { background: #d98a00; box-shadow: 0 0 0 3px rgb(217 138 0 / .2); }
+.site-status.is-closed .dot { background: #d64545; box-shadow: 0 0 0 3px rgb(214 69 69 / .16); }
+.site-today { margin: 10px 0 0; font-size: 14.5px; opacity: .85; }
 .site-notices { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .site-notices li { width: fit-content; padding: 8px 14px; border-radius: 10px; background: rgb(255 255 255 / .16); font-size: 15px; }
 
@@ -75,6 +87,12 @@ a { color: inherit; }
 .site-about p { margin: 0; max-width: 62ch; font-size: 17px; color: var(--ink-2); }
 
 .site-catalog { display: grid; gap: 28px 48px; }
+/* Salti rapidi tra le sottosezioni, quando sono tante */
+.site-jump { display: flex; gap: 8px; margin: -4px 0 26px; overflow-x: auto; scrollbar-width: none; }
+.site-jump::-webkit-scrollbar { display: none; }
+.site-jump a { flex: none; padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
+.site-jump a:hover { border-color: var(--accent); color: var(--accent); }
+.site[data-look='trattoria'] .site-jump { justify-content: center; }
 @container (min-width: 620px) { .site-catalog { grid-template-columns: 1fr 1fr; } .site-split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; } }
 .site-group h3 { margin: 0 0 4px; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
 .site-group ul, .site-hours, .site-news { list-style: none; margin: 0; padding: 0; }
@@ -232,7 +250,113 @@ a { color: inherit; }
 
 @media (max-width: 899px) { .site-cta { padding: 8px 14px; } }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
-.site [id] { scroll-margin-top: 80px; }
+.site [id] { scroll-margin-top: 104px; }
 /* Orari o novità da soli: una colonna leggibile, non a tutta larghezza. */
 .site-section > section:only-child { max-width: 640px; }
 .site[data-look='trattoria'] .site-section > section:only-child { margin: 0 auto; }
+
+/* Barra azioni sul telefono: fissa in basso, sopra il piè di pagina */
+.site-dock { display: none; }
+@media (max-width: 640px) {
+  .site-dock {
+    position: fixed; inset: auto 0 0; z-index: 3; display: flex; gap: 8px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, #fff 94%, transparent); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line); box-shadow: 0 -6px 18px rgb(18 22 27 / .07);
+  }
+  .site-dock a { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px; padding: 0 10px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); font-size: 14.5px; font-weight: 600; text-decoration: none; }
+  .site-dock a.is-primary { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .site-footer { padding-bottom: calc(26px + 70px + env(safe-area-inset-bottom)); }
+  /* Con la barra in basso, i pulsanti in alto sono un doppione. */
+  .site:has(.site-dock) .site-ctas { display: none; }
+  .site[data-look='energia'] .site-dock { background: color-mix(in srgb, #0d0e17 92%, transparent); }
+  .site[data-look='energia'] .site-dock a { background: #181a26; color: var(--ink); }
+  .site[data-look='energia'] .site-dock a.is-primary { background: var(--pop); border-color: var(--pop); color: #0d0e17; }
+  .site[data-look='trattoria'] .site-dock { background: color-mix(in srgb, #fbf6ee 94%, transparent); }
+  .site[data-look='bottega'] .site-dock a { border-radius: 4px; }
+}
+
+/* Anteprima di una proposta: barra in cima, fuori dallo stile del sito */
+.preview-bar { position: relative; z-index: 4; background: #1b1f27; color: #f1f3f6; font-size: 14.5px; }
+.preview-bar-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; padding: 12px clamp(18px, 4vw, 40px); }
+.preview-bar-status { margin: 0; font-weight: 600; }
+.preview-bar-status::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 9px; border-radius: 50%; background: #f5b83d; vertical-align: 1px; }
+.preview-bar.is-applied .preview-bar-status::before { background: #3ecf7a; }
+.preview-bar.is-rejected .preview-bar-status::before, .preview-bar.is-undone .preview-bar-status::before { background: #9aa3ae; }
+.preview-bar-list { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; list-style: none; color: #c3c9d2; }
+.preview-bar-list li::before { content: ''; display: inline-block; width: 5px; height: 5px; margin-right: 8px; border-radius: 1px; background: #f5b83d; vertical-align: 2px; }
+.preview-bar-link { margin-left: auto; color: #fff; text-underline-offset: 4px; white-space: nowrap; }
+
+/* ===== Movimento ===== */
+/* Cambio pagina (sito, anteprima, privacy): dissolvenza breve tra i documenti, dove il browser la supporta. */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: vt-out 160ms ease-in both; }
+::view-transition-new(root) { animation: vt-in 280ms cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in { from { opacity: 0; } }
+
+/* Risposta ai tocchi: colore morbido al passaggio, piccola pressione al clic. */
+.site-cta, .site-dock a, .site-jump a, .site-nav a, .site-footer a, .preview-bar-link {
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, text-decoration-color 160ms ease, transform 120ms ease;
+}
+.site-cta:active, .site-dock a:active, .site-jump a:active { transform: scale(.96); }
+
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes name-rise { from { clip-path: inset(0 0 100% 0); transform: translateY(.35em); } to { clip-path: inset(-20% -5%); transform: none; } }
+@keyframes soft-rise { from { opacity: 0; transform: translateY(10px); } }
+@keyframes dock-up { from { transform: translateY(110%); } }
+@keyframes live-ring { 0% { transform: scale(1); opacity: .55; } 70%, 100% { transform: scale(2.6); opacity: 0; } }
+@keyframes settle { from { opacity: .3; transform: translateY(8px); } }
+
+/* Il momento principale: il nome dell'attività sale dal basso come un'insegna che si accende. */
+@media (prefers-reduced-motion: no-preference) {
+  .site-hero h1 { animation: name-rise 760ms cubic-bezier(.16, 1, .3, 1) backwards; }
+  .site-lead { animation: soft-rise 600ms 160ms cubic-bezier(.16, 1, .3, 1) both; }
+  .site-status { animation: soft-rise 600ms 260ms cubic-bezier(.16, 1, .3, 1) both; }
+  .site-today, .site-notices { animation: soft-rise 600ms 340ms cubic-bezier(.16, 1, .3, 1) both; }
+  .site-hero-img { animation: fade-in 900ms ease-out both; }
+  .site-dock { animation: dock-up 480ms 500ms cubic-bezier(.16, 1, .3, 1) both; }
+  /* Aperto adesso: il punto verde "respira", come una spia accesa. */
+  .site-status:not(.is-closed) .dot { position: relative; }
+  .site-status:not(.is-closed) .dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: inherit; animation: live-ring 2.4s cubic-bezier(.16, 1, .3, 1) infinite; }
+  /* Dopo un salto (menu, sottosezioni) la parte raggiunta si assesta: si capisce dove si è arrivati. */
+  .site-group:target, .site-section:target, .site-section > section:target { animation: settle 700ms cubic-bezier(.16, 1, .3, 1); }
+}
+/* Con il movimento ridotto restano solo le dissolvenze. */
+@media (prefers-reduced-motion: reduce) {
+  .site-hero-text > * { animation: fade-in 400ms ease-out both; }
+  .site-cta:active, .site-dock a:active, .site-jump a:active { transform: none; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 120ms; }
+}
+
+/* ===== Scorrimento =====
+   Legati allo scroll solo intestazione e copertina; il resto entra con components/Reveal.tsx.
+   Dove il browser non supporta le animazioni di scroll il sito resta fermo e tutto visibile. */
+@keyframes header-lift { to { box-shadow: 0 8px 24px rgb(18 22 27 / .08); border-bottom-color: transparent; } }
+@keyframes hero-drift { to { transform: translateY(14%) scale(1.06); } }
+@keyframes hero-text-out { to { opacity: .15; transform: translateY(-24px); } }
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* L'intestazione si stacca dalla pagina appena si inizia a scorrere. */
+    .site-header { animation: header-lift linear both; animation-timeline: scroll(root); animation-range: 0 140px; }
+
+    /* Copertina: la foto scende piano mentre il testo se ne va, un po' di profondità. */
+    .site-hero-img {
+      animation: fade-in 900ms ease-out both, hero-drift linear both;
+      animation-timeline: auto, view();
+      animation-range: normal, exit 0% exit 100%;
+    }
+    .site-hero-text { animation: hero-text-out linear both; animation-timeline: view(); animation-range: exit 10% exit 90%; }
+
+  }
+}
+
+/* Entrate allo scorrimento (Reveal.tsx): nascoste solo le parti ancora sotto lo schermo, e solo con JavaScript attivo.
+   Una volta comparse restano, e l'animazione si completa anche se ci si ferma a metà. */
+.rv { transition: opacity 700ms cubic-bezier(.16, 1, .3, 1), transform 700ms cubic-bezier(.16, 1, .3, 1), clip-path 900ms cubic-bezier(.16, 1, .3, 1); transition-delay: var(--rv-delay, 0ms); }
+.rv.rv-wait { opacity: 0; transform: translateY(20px); }
+.site-gallery figure.rv { overflow: hidden; }
+.site-gallery figure.rv.rv-wait { opacity: .001; transform: scale(.97); clip-path: inset(10% 0 0 0 round 8px); }
+.site-gallery figure.rv img { transition: transform 1200ms cubic-bezier(.16, 1, .3, 1); transition-delay: var(--rv-delay, 0ms); }
+.site-gallery figure.rv.rv-wait img { transform: scale(1.12); }

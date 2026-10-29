@@ -6,3 +6,4 @@ export * from './schema-org';
 export * from './layout';
 export * from './categories';
 export * from './site';
+export * from './opening';

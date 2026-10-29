@@ -1,4 +1,4 @@
-import type { BusinessData, ChangeOp, PageBlock, Role } from '@cms/shared';
+import type { BusinessData, ChangeOp, OpenStatus, PageBlock, Role } from '@cms/shared';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 export const SITE_URL = import.meta.env.VITE_SITE_URL ?? 'http://localhost:3001';
@@ -61,7 +61,11 @@ async function uploadPhoto(businessId: string, file: File): Promise<string> {
   return body.url as string;
 }
 
-export interface BusinessSummary { id: string; slug: string; name: string; role: Role }
+export interface BusinessSummary {
+  id: string; slug: string; name: string; role: Role;
+  category: string; categoryLabel: string; logo: string | null; cover: string | null; accent: string; look: string;
+  status: OpenStatus; items: number; photos: number; pending: number; updatedAt: string | null;
+}
 export interface BusinessDetail { id: string; slug: string; timezone: string; role: Role; data: BusinessData }
 export interface Change {
   id: string;

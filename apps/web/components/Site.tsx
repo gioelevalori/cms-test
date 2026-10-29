@@ -1,8 +1,9 @@
 import { Fragment, type CSSProperties, type ReactNode } from 'react';
 import {
-  LINKS, WEEKDAY_NAMES, addDays, categoryProfile, formatDateIt, photoUrl, resolveSite, todayIn, weekdayOf,
+  LINKS, WEEKDAY_NAMES, addDays, categoryProfile, formatDateIt, openStatus, photoUrl, resolveSite, timeIn, todayIn, weekdayOf,
   type BusinessData, type IsoDate, type SectionId, type TimeSlot, type Weekday,
 } from '@cms/shared';
+import { Reveal } from './Reveal';
 
 const euro = (n: number | null) => (n === null ? '' : `${n.toFixed(2).replace('.', ',')} €`);
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as Weekday[];
@@ -34,6 +35,20 @@ const PinIcon = () => <Icon d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 
 const PhoneIcon = () => <Icon d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2Z" />;
 const ClockIcon = () => <Icon d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-13v4.5l3 2" />;
 const CheckIcon = () => <Icon d="m5 12.5 4.5 4.5L19 7.5" />;
+const ListIcon = () => <Icon d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />;
+
+/** "Pizze rosse" → "pizze-rosse": ancore per le sottosezioni del catalogo. */
+const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+/** Il logo dell'attività; senza logo, l'iniziale del nome nel colore del sito. Il nome è sempre scritto accanto. */
+function Mark({ data }: { data: BusinessData }) {
+  if (!data.logo) return <span className="site-logo" aria-hidden="true">{data.name.charAt(0)}</span>;
+  return (
+    <span className="site-logo-img">
+      <img src={photoUrl(data.logo, { w: 240 })} alt="" height={44} loading="eager" />
+    </span>
+  );
+}
 
 const ANCHOR: Record<SectionId, string> = {
   highlights: 'punti-di-forza', catalog: 'catalogo', about: 'chi-siamo', hours: 'orari', posts: 'novita', gallery: 'foto', where: 'dove-siamo',
@@ -47,6 +62,9 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
   const site = resolveSite(data);
   const today = todayIn(timezone);
   const now = todayText(data, today);
+  // Pagina sempre generata alla richiesta: l'ora è quella di chi apre il sito, nel fuso dell'attività.
+  const live = openStatus(data, today, timeIn(timezone));
+  const liveText = live.detail ? `${live.label} · ${live.detail}` : live.label;
   const todayWd = weekdayOf(today);
   const upcoming = data.specialHours.filter((s) => s.date >= today && s.date <= addDays(today, 30));
   const sections = [...new Set(data.catalog.map((i) => i.section))];
@@ -79,9 +97,14 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
     catalog: () => (
       <section className="site-section" id={ANCHOR.catalog} aria-labelledby={`${ANCHOR.catalog}-t`}>
         {heading('catalog')}
+        {sections.length > 2 && (
+          <nav className="site-jump" aria-label={`Sezioni di ${site.titles.catalog}`}>
+            {sections.map((section) => <a key={section} href={`#${ANCHOR.catalog}-${slug(section)}`}>{section}</a>)}
+          </nav>
+        )}
         <div className="site-catalog">
           {sections.map((section) => (
-            <div key={section} className="site-group">
+            <div key={section} className="site-group" id={`${ANCHOR.catalog}-${slug(section)}`}>
               {sections.length > 1 && <h3>{section}</h3>}
               <ul>
                 {data.catalog.filter((i) => i.section === section).map((i) => (
@@ -184,11 +207,11 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
       <div className="site-topbar">
         {data.address && <span className="topbar-item topbar-address"><PinIcon />{data.address}</span>}
         {data.phone && <span className="topbar-item topbar-phone"><PhoneIcon />{data.phone}</span>}
-        <span className="topbar-item"><ClockIcon />{now.text}</span>
+        <span className="topbar-item"><ClockIcon />{liveText}</span>
       </div>
       <header className="site-header">
         <a className="site-brand" href="#top">
-          <span className="site-logo" aria-hidden="true">{data.name.charAt(0)}</span>
+          <Mark data={data} />
           <span>
             <span className="site-name">{data.name}</span>
             {site.tagline && <span className="site-tagline">{site.tagline}</span>}
@@ -220,7 +243,12 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
           <div className="site-hero-text">
             <h1>{data.name}</h1>
             {lead && <p className="site-lead">{lead}</p>}
-            <p className={`site-status ${now.closed ? 'is-closed' : ''}`}><span className="dot" aria-hidden="true" />{now.text}</p>
+            <p className={`site-status ${live.open ? (live.closingSoon ? 'is-soon' : '') : 'is-closed'}`}>
+              <span className="dot" aria-hidden="true" />
+              <strong>{live.label}</strong>
+              {live.detail && <span className="status-detail">{live.detail}</span>}
+            </p>
+            {now.text !== 'Oggi chiuso' && <p className="site-today">{now.text}</p>}
             {upcoming.length > 0 && (
               <ul className="site-notices">
                 {upcoming.slice(0, 3).map((s) => (
@@ -238,7 +266,7 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
 
       <footer className="site-footer" id="contatti">
         <div className="footer-brand">
-          <span className="site-logo" aria-hidden="true">{data.name.charAt(0)}</span>
+          <Mark data={data} />
           <span>
             <span className="site-name">{data.name}</span>
             {site.tagline && <span className="site-tagline">{site.tagline}</span>}
@@ -255,6 +283,17 @@ export function Site({ data, timezone }: { data: BusinessData; timezone: string 
         </nav>
         <p className="footer-legal">© {today.slice(0, 4)} {data.name} · <a href="/privacy">Privacy</a></p>
       </footer>
+
+      <Reveal />
+
+      {/* Sul telefono le due cose che servono di più restano sempre a portata di pollice. */}
+      {(phoneHref || mapUrl || nav.includes('catalog')) && (
+        <nav className="site-dock" aria-label="Azioni rapide">
+          {nav.includes('catalog') && <a href={`#${ANCHOR.catalog}`}><ListIcon />{site.titles.catalog}</a>}
+          {mapUrl && <a href={mapUrl} target="_blank" rel="noopener noreferrer"><PinIcon />Indicazioni</a>}
+          {phoneHref && <a className="is-primary" href={phoneHref}><PhoneIcon />Chiama</a>}
+        </nav>
+      )}
     </div>
   );
 }

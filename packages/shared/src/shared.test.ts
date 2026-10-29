@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretMessage, interpretPhoto, resolveSite, STRUCTURE_OPS, applyOps, describeOp, toSchemaOrg, nextWeekday, weekdayOf, isValidOp, CATEGORIES, categoryProfile, examplesFor, layoutFor, type BusinessData } from './index';
+import { interpretMessage, interpretPhoto, resolveSite, STRUCTURE_OPS, applyOps, describeOp, toSchemaOrg, nextWeekday, weekdayOf, isValidOp, CATEGORIES, categoryProfile, examplesFor, layoutFor, openStatus, timeIn, type BusinessData } from './index';
 
 // Martedì 27 ottobre 2026
 const TODAY = '2026-10-27';
@@ -283,4 +283,34 @@ test('giorno di solito chiuso: "chiudiamo alle 15" da solo non basta', () => {
   assert.deepEqual(interpretMessage('Lunedì dalle 10 alle 15', sample(), TODAY).ops, [
     { op: 'setSpecialHours', date: '2026-11-02', closed: false, opens: '10:00', closes: '15:00', note: null },
   ]);
+});
+
+test('aperto ora: stato, chiusura vicina, prossima apertura', () => {
+  const d = sample(); // martedì 19–23:30, sabato 12–14:30 e 19–23:30
+  assert.deepEqual(openStatus(d, TODAY, '20:00'), { open: true, closingSoon: false, label: 'Aperto ora', detail: 'chiude alle 23:30' });
+  assert.equal(openStatus(d, TODAY, '23:10').label, 'Chiude tra poco');
+  assert.equal(openStatus(d, TODAY, '10:00').detail, 'apre alle 19');
+  assert.equal(openStatus(d, TODAY, '23:45').detail, 'apre sabato alle 12');
+  assert.equal(openStatus(d, '2026-10-30', '09:00').detail, 'apre domani alle 12');
+  // Variazione: sabato chiusi → riapre martedì.
+  d.specialHours = [{ date: '2026-10-31', closed: true, opens: null, closes: null, note: null }];
+  assert.equal(openStatus(d, '2026-10-30', '09:00').detail, 'apre martedì alle 19');
+  // Fascia dopo mezzanotte: mercoledì all'1 è ancora aperto da martedì sera.
+  d.openingHours = [{ weekday: 2, opens: '19:00', closes: '02:00' }];
+  assert.equal(openStatus(d, '2026-10-28', '01:00').detail, 'chiude alle 2');
+  assert.equal(openStatus(d, TODAY, '23:50').open, true);
+  assert.equal(openStatus({ ...d, openingHours: [] }, TODAY, '12:00').detail, '');
+  assert.equal(timeIn('Europe/Rome', new Date('2026-10-27T08:05:00Z')), '09:05');
+});
+
+test('logo: didascalia, applyOps, validità, schema.org', () => {
+  const LOGO = 'https://res.cloudinary.com/demo/image/upload/v1/cms/logo.png';
+  assert.deepEqual(interpretPhoto('Il nostro logo', LOGO, sample(), TODAY).ops, [{ op: 'setLogo', url: LOGO }]);
+  const data = applyOps(sample(), [{ op: 'setLogo', url: LOGO }], ids);
+  assert.equal(data.logo, LOGO);
+  assert.equal(describeOp({ op: 'setLogo', url: LOGO }, sample()), 'Nuovo logo');
+  assert.equal(isValidOp({ op: 'setLogo', url: 'https://evil.example/logo.png' }), false);
+  assert.equal(isValidOp({ op: 'setLogo', url: null }), true);
+  assert.equal(toSchemaOrg(data, 'https://example.com/x').logo, LOGO);
+  assert.equal(applyOps(data, [{ op: 'setLogo', url: null }], ids).logo, null);
 });
